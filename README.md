@@ -48,27 +48,15 @@ Study1024는 OCR, STT(Speech-to-Text), 그리고 AI 기반 요약 기능을 제�
 
 ### 환경 설정
 
-1. Supabase 프로젝트 초기화:
-\`\`\`bash
-supabase init
 supabase start
 \`\`\`
 
 2. n8n 실행:
 \`\`\`bash
 n8n start
-\`\`\`
-
-3. 환경 변수 설정:
-\`\`\`bash
-cp .env.example .env
 # .env 파일에 필요한 API 키와 설정 추가
 \`\`\`
 
-## 워크플로우
-
-### 1. OCR 처리
-1. 문서 업로드
 2. Azure Computer Vision OCR 처리
 3. 텍스트 추출 및 저장
 
@@ -89,11 +77,6 @@ cp .env.example .env
 \`\`\`sql
 -- 문서 테이블
 CREATE TABLE documents (
-  id uuid DEFAULT gen_random_uuid(),
-  title TEXT,
-  content TEXT,
-  content_type TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now(),
   PRIMARY KEY (id)
 );
@@ -102,14 +85,8 @@ CREATE TABLE documents (
 CREATE TABLE processing_results (
   id uuid DEFAULT gen_random_uuid(),
   document_id uuid REFERENCES documents(id),
-  result_type TEXT,
-  result_content TEXT,
-  processed_at TIMESTAMPTZ DEFAULT now(),
   PRIMARY KEY (id)
 );
-\`\`\`
-
-### n8n 워크플로우 개발
 
 1. Webhook 노드로 시작
 2. Azure 서비스 노드 연결
