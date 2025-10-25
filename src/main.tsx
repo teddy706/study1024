@@ -1,21 +1,27 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { AuthProvider } from './contexts/AuthContext'
-import { useAuth } from './hooks/useAuth'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Dashboard } from './pages/Dashboard'
-
-function AppInside() {
-  const { user, loading } = useAuth()
-
-  if (loading) return <div>Loading...</div>
-
-  return <Dashboard userId={user?.id ?? ''} />
-}
+import Login from './pages/Login'
+import Register from './pages/Register'
+import ContactDetail from './pages/ContactDetail'
+import ReportDetail from './pages/ReportDetail'
 
 function App() {
   return (
     <AuthProvider>
-      <AppInside />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          {/* 공개 대시보드: 인증 없이 접근 가능 */}
+          <Route path="/" element={<Dashboard userId="" />} />
+          <Route path="/contacts/:id" element={<ContactDetail />} />
+          <Route path="/reports/:id" element={<ReportDetail />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
     </AuthProvider>
   )
 }

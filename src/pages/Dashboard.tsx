@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../utils/supabase'
 import type { Contact, Report, Action } from '../utils/supabase'
+import Navbar from '../components/dashboard/Navbar'
+import StatsCard from '../components/dashboard/StatsCard'
+import ContactList from '../components/dashboard/ContactList'
+import ReportsList from '../components/dashboard/ReportsList'
+import ActionsList from '../components/dashboard/ActionsList'
+import FilterBar from '../components/dashboard/FilterBar'
+import { useSearchParams } from 'react-router-dom'
 
 interface DashboardProps {
   userId: string
@@ -10,37 +17,125 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId }) => {
   const [contacts, setContacts] = useState<Contact[]>([])
   const [reports, setReports] = useState<Report[]>([])
   const [actions, setActions] = useState<Action[]>([])
+  const [companies, setCompanies] = useState<string[]>([])
+  const [startDate, setStartDate] = useState<string>('')
+  const [endDate, setEndDate] = useState<string>('')
+  const [selectedCompany, setSelectedCompany] = useState<string>('')
+  const [statsCounts, setStatsCounts] = useState<{ contact: number; report: number; action: number }>({ contact: 0, report: 0, action: 0 })
   const [loading, setLoading] = useState(true)
+  const [searchParams, setSearchParams] = useSearchParams()
 
   useEffect(() => {
+    // initialize filters from querystring
+    const s = searchParams.get('start') || ''
+    const e = searchParams.get('end') || ''
+    const c = searchParams.get('company') || ''
+    setStartDate(s)
+    setEndDate(e)
+    setSelectedCompany(c)
+
+    // fetch companies and initial data
+    fetchCompaniesServerFirst()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    // update querystring when filters change
+    const params: any = {}
+    if (startDate) params.start = startDate
+    if (endDate) params.end = endDate
+    if (selectedCompany) params.company = selectedCompany
+    setSearchParams(params)
+    // reload data
     loadDashboardData()
-  }, [userId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, endDate, selectedCompany])
+
+  // Try server-side company distinct first, fallback to client-side
+  const fetchCompaniesServerFirst = async () => {
+    try {
+      // prefer SQL rpc get_companies if exists
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_companies')
+      if (!rpcError && Array.isArray(rpcData)) {
+        setCompanies(rpcData.map((r: any) => r.company).filter(Boolean))
+        return
+      }
+    } catch (err) {
+      // ignore and fallback
+    }
+    // fallback to client-side distinct
+    fetchCompanies()
+  }
+
+  const fetchCompanies = async () => {
+    try {
+      const { data, error } = await supabase.from('contacts').select('company').limit(1000)
+      if (error) throw error
+      const list = Array.from(new Set((data || []).map((r: any) => r.company).filter(Boolean)))
+      setCompanies(list)
+    } catch (err) {
+      console.error('Error fetching companies:', err)
+    }
+  }
 
   const loadDashboardData = async () => {
     try {
       setLoading(true)
 
-      // 최근 연락처 로드
-      const { data: contactsData } = await supabase
-        .from('contacts')
-        .select('*')
-        .order('last_contact', { ascending: false })
-        .limit(5)
+      // build ISO range if dates provided
+      const startIso = startDate ? new Date(startDate).toISOString() : null
+      const endIso = endDate ? new Date(new Date(endDate).setHours(23,59,59,999)).toISOString() : null
 
-      // 최신 리포트 로드
-      const { data: reportsData } = await supabase
-        .from('reports')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10)
+      const contactsQuery = supabase.from('contacts').select('*').order('last_contact', { ascending: false }).limit(6)
+      const reportsQuery = supabase.from('reports').select('*').order('created_at', { ascending: false }).limit(6)
+      const actionsQuery = supabase.from('actions').select('*').order('due_date', { ascending: true }).limit(6)
 
-      // 예정된 일정 로드
-      const { data: actionsData } = await supabase
-        .from('actions')
-        .select('*')
-        .gte('due_date', new Date().toISOString())
-        .order('due_date', { ascending: true })
-        .limit(5)
+      if (selectedCompany) contactsQuery.eq('company', selectedCompany)
+      if (startIso) contactsQuery.gte('last_contact', startIso)
+      if (endIso) contactsQuery.lte('last_contact', endIso)
+
+      if (startIso) reportsQuery.gte('created_at', startIso)
+      if (endIso) reportsQuery.lte('created_at', endIso)
+
+      if (startIso) actionsQuery.gte('due_date', startIso)
+      if (endIso) actionsQuery.lte('due_date', endIso)
+
+      // Attempt to fetch aggregated counts from server-side function for performance
+      try {
+        const startIsoParam = startIso ?? null
+        const endIsoParam = endIso ?? null
+        const { data: countsData, error: countsError } = await supabase.rpc('get_dashboard_counts', { start_ts: startIsoParam, end_ts: endIsoParam })
+        if (!countsError && countsData && countsData.length > 0) {
+          // countsData may be an array with one object
+          const counts = Array.isArray(countsData) ? countsData[0] : countsData
+          // We still fetch list items for display, but use counts for StatsCard
+          const [{ data: contactsData }, { data: reportsData }, { data: actionsData }] = await Promise.all([
+            contactsQuery,
+            reportsQuery,
+            actionsQuery,
+          ])
+          if (contactsData) setContacts(contactsData)
+          if (reportsData) setReports(reportsData)
+          if (actionsData) setActions(actionsData)
+          // overwrite stats counts using server counts if present
+          // convert to numbers, defensive
+          const contactCountNum = Number(counts.contact_count ?? contacts.length)
+          const reportCountNum = Number(counts.report_count ?? reports.length)
+          const actionCountNum = Number(counts.action_count ?? actions.length)
+          // set small state slice for counts (we'll store counts in local state variables)
+          setStatsCounts({ contact: contactCountNum, report: reportCountNum, action: actionCountNum })
+          setLoading(false)
+          return
+        }
+      } catch (err) {
+        // ignore and fallback to client counts
+      }
+
+      const [{ data: contactsData }, { data: reportsData }, { data: actionsData }] = await Promise.all([
+        contactsQuery,
+        reportsQuery,
+        actionsQuery,
+      ])
 
       if (contactsData) setContacts(contactsData)
       if (reportsData) setReports(reportsData)
@@ -58,88 +153,47 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId }) => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* 헤더 섹션 */}
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">대시보드</h1>
-        <p className="text-gray-600">오늘의 업무 현황</p>
-      </header>
+    <div>
+      <Navbar />
+      <main className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold">대시보드</h1>
+          <p className="text-gray-600">오늘의 업무 현황</p>
+        </div>
 
-      {/* 주요 지표 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-2">고객 현황</h3>
-          <p className="text-3xl font-bold">{contacts.length}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-2">새로운 리포트</h3>
-          <p className="text-3xl font-bold">{reports.length}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-2">예정된 일정</h3>
-          <p className="text-3xl font-bold">{actions.length}</p>
-        </div>
-      </div>
+        <FilterBar
+          startDate={startDate}
+          endDate={endDate}
+          company={selectedCompany}
+          companies={companies}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
+          onCompanyChange={setSelectedCompany}
+          onClear={() => { setStartDate(''); setEndDate(''); setSelectedCompany('') }}
+        />
 
-      {/* 최근 고객 */}
-      <section className="mb-8">
-        <h2 className="text-2xl font-bold mb-4">최근 고객</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {contacts.map(contact => (
-            <div key={contact.id} className="bg-white rounded-lg shadow p-4">
-              <h3 className="font-semibold">{contact.name}</h3>
-              <p className="text-gray-600">{contact.company}</p>
-              <p className="text-gray-600">{contact.position}</p>
-              <a href={`tel:${contact.phone}`} className="text-blue-500 hover:text-blue-700">
-                {contact.phone}
-              </a>
-            </div>
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <StatsCard title="고객 수" value={statsCounts.contact ?? contacts.length} />
+          <StatsCard title="리포트 수" value={statsCounts.report ?? reports.length} />
+          <StatsCard title="예정된 일정" value={statsCounts.action ?? actions.length} />
         </div>
-      </section>
 
-      {/* 최신 리포트 */}
-      <section className="mb-8">
-        <h2 className="text-2xl font-bold mb-4">최신 리포트</h2>
-        <div className="space-y-4">
-          {reports.map(report => (
-            <div key={report.id} className="bg-white rounded-lg shadow p-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-semibold">{report.type}</span>
-                <span className="text-gray-500">
-                  {new Date(report.created_at).toLocaleDateString()}
-                </span>
-              </div>
-              <p className="text-gray-700">{report.content}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold mb-4">최근 고객</h2>
+          <ContactList contacts={contacts} />
+        </section>
 
-      {/* 예정된 일정 */}
-      <section>
-        <h2 className="text-2xl font-bold mb-4">예정된 일정</h2>
-        <div className="space-y-4">
-          {actions.map(action => (
-            <div key={action.id} className="bg-white rounded-lg shadow p-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-semibold">{action.type}</span>
-                <span className="text-gray-500">
-                  {new Date(action.due_date).toLocaleString()}
-                </span>
-              </div>
-              <p className="text-gray-700">{action.description}</p>
-              <span className={`inline-block px-2 py-1 rounded text-sm ${
-                action.status === 'completed' ? 'bg-green-100 text-green-800' :
-                action.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                'bg-blue-100 text-blue-800'
-              }`}>
-                {action.status}
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
+        <section className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <h2 className="text-2xl font-bold mb-4">최신 리포트</h2>
+            <ReportsList reports={reports} />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold mb-4">예정된 일정</h2>
+            <ActionsList actions={actions} />
+          </div>
+        </section>
+      </main>
     </div>
   )
 }
