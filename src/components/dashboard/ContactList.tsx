@@ -22,35 +22,43 @@ export const ContactList: React.FC<Props> = ({ contacts }) => {
   }
 
   return (
-    <div className="divide-y divide-gray-100">
+    <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {contacts.map(c => (
-        <Link 
-          key={c.id} 
-          to={`/contacts/${c.id}`} 
-          className="block p-6 hover:bg-gray-50 transition-all duration-200 group"
+        <Link
+          key={c.id}
+          to={`/contacts/${c.id}`}
+          className="group block bg-white rounded-2xl border border-gray-100 shadow-md shadow-gray-200/30 hover:shadow-xl hover:shadow-gray-300/40 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm md:text-base shadow-lg">
-                {c.name.charAt(0)}
+          <div className="p-5">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-10 h-10 flex-shrink-0 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 text-white flex items-center justify-center font-bold text-base shadow-lg ring-1 ring-white/40">
+                {c.name?.charAt(0) || '?'}
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">{c.name}</h3>
-                <div className="flex items-center space-x-2 mt-1">
-                  <span className="text-sm text-gray-600">{c.company}</span>
-                  <span className="text-gray-300">•</span>
-                  <span className="text-sm text-gray-500">{c.position}</span>
-                </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors text-sm">{c.name}</h3>
+                <div className="text-xs text-gray-600 truncate">{c.company}</div>
+                {c.position && <div className="text-xs text-gray-500 truncate">{c.position}</div>}
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <div className="text-sm font-medium text-blue-600">{c.phone}</div>
-                <div className="text-xs text-gray-400 mt-1">{c.email}</div>
-              </div>
-              <svg className="w-4 h-4 md:w-5 md:h-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+
+            <div className="space-y-1.5">
+              {c.phone && (
+                <div className="flex items-center gap-1.5 text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded-lg">
+                  <svg className="w-3 h-3 flex-shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.89.34 1.76.65 2.59a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.49-1.22a2 2 0 0 1 2.11-.45c.83.31 1.7.53 2.59.65A2 2 0 0 1 22 16.92z" />
+                  </svg>
+                  <span className="truncate flex-1">{c.phone}</span>
+                </div>
+              )}
+              {c.email && (
+                <div className="flex items-center gap-1.5 text-xs text-gray-700 bg-gray-50 px-2 py-1 rounded-lg">
+                  <svg className="w-3 h-3 flex-shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6c0-1.1.9-2 2-2z" />
+                    <polyline points="22,6 12,13 2,6" />
+                  </svg>
+                  <span className="truncate flex-1">{c.email}</span>
+                </div>
+              )}
             </div>
           </div>
         </Link>

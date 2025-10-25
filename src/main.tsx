@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import ContactDetail from './pages/ContactDetail'
 import ReportDetail from './pages/ReportDetail'
+import './index.css'
 
 function App() {
   return (

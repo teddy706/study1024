@@ -7,6 +7,7 @@ import ReportsList from '../components/dashboard/ReportsList'
 import ActionsList from '../components/dashboard/ActionsList'
 import FilterBar from '../components/dashboard/FilterBar'
 import { useSearchParams } from 'react-router-dom'
+import ScoreboardNumber from '../components/ui/ScoreboardNumber'
 
 interface DashboardProps {
   userId: string
@@ -201,13 +202,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId }) => {
           </div>
         </div>
 
-        {/* Stats Cards - Apple style */}
+        {/* Stats Cards - Apple style with scoreboard animation */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
           <div className="group bg-gradient-to-br from-blue-500 to-blue-600 rounded-3xl p-8 shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105 cursor-pointer">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-blue-100 text-sm font-medium mb-2">고객 수</p>
-                <p className="text-5xl font-bold text-white">{statsCounts.contact ?? contacts.length}</p>
+                <ScoreboardNumber value={statsCounts.contact ?? contacts.length} className="text-5xl font-bold text-white" />
               </div>
               <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm" style={{maxWidth: 56, maxHeight: 56}}>
                 <svg className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -221,7 +222,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId }) => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-purple-100 text-sm font-medium mb-2">리포트 수</p>
-                <p className="text-5xl font-bold text-white">{statsCounts.report ?? reports.length}</p>
+                <ScoreboardNumber value={statsCounts.report ?? reports.length} className="text-5xl font-bold text-white" />
               </div>
               <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm" style={{maxWidth: 56, maxHeight: 56}}>
                 <svg className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -235,7 +236,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId }) => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-100 text-sm font-medium mb-2">예정된 일정</p>
-                <p className="text-5xl font-bold text-white">{statsCounts.action ?? actions.length}</p>
+                <ScoreboardNumber value={statsCounts.action ?? actions.length} className="text-5xl font-bold text-white" />
               </div>
               <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm" style={{maxWidth: 56, maxHeight: 56}}>
                 <svg className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
