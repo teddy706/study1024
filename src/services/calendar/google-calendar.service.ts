@@ -1,6 +1,7 @@
 import { google } from 'googleapis'
-import { supabase } from '../utils/supabase'
-import type { Action } from '../utils/supabase'
+import { OpenAI } from 'openai'
+import { supabase } from '../../utils/supabase'
+import type { Action } from '../../utils/supabase'
 
 const calendar = google.calendar('v3')
 
@@ -56,7 +57,7 @@ export const scheduleEvent = async (summary: string, description: string, startT
 
 export const extractDateFromText = async (text: string): Promise<{ startTime: Date, endTime: Date }> => {
   // GPT를 사용하여 텍스트에서 날짜/시간 정보 추출
-  const openai = new OpenAI(import.meta.env.VITE_OPENAI_API_KEY)
+  const openai = new OpenAI({ apiKey: import.meta.env.VITE_OPENAI_API_KEY })
 
   const prompt = `
     다음 텍스트에서 약속 날짜와 시간을 추출해주세요:

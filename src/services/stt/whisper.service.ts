@@ -1,11 +1,13 @@
 import { supabase } from '../../utils/supabase'
 import type { Call } from '../../utils/supabase'
+import { OpenAI } from 'openai'
 
 export class WhisperService {
   private openai: any
 
   constructor() {
-    this.openai = new OpenAI(import.meta.env.VITE_OPENAI_API_KEY)
+    // openai v4 usage
+    this.openai = new OpenAI({ apiKey: import.meta.env.VITE_OPENAI_API_KEY })
   }
 
   async transcribeAudio(audioFile: File): Promise<string> {

@@ -1,6 +1,7 @@
 import { ApifyClient } from 'apify-client'
-import { supabase } from '../utils/supabase'
-import type { Contact, Report } from '../utils/supabase'
+import { supabase } from '../../utils/supabase'
+import type { Contact, Report } from '../../utils/supabase'
+import { OpenAI } from 'openai'
 
 const apifyClient = new ApifyClient({
   token: import.meta.env.VITE_APIFY_TOKEN,
@@ -14,9 +15,9 @@ export const generateNewsReport = async (contact: Contact): Promise<Report> => {
         { url: `https://search.naver.com/search.naver?where=news&query=${contact.company}` },
         { url: `https://www.google.com/search?q=${contact.company}&tbm=nws` }
       ],
-      pageFunction: ($) => {
-        const articles = []
-        $('article').each((_, el) => {
+      pageFunction: ($: any) => {
+        const articles: any[] = []
+        $('article').each((_: any, el: any) => {
           articles.push({
             title: $(el).find('h3').text(),
             summary: $(el).find('p').text(),
@@ -27,7 +28,7 @@ export const generateNewsReport = async (contact: Contact): Promise<Report> => {
       }
     })
 
-    const dataset = await apifyClient.dataset(run.defaultDatasetId).listItems()
+    const dataset: any = await apifyClient.dataset(run.defaultDatasetId).listItems()
 
     // GPT를 사용하여 뉴스 분석 및 요약
     const summary = await analyzeNews(dataset)
@@ -57,11 +58,11 @@ export const generateNewsReport = async (contact: Contact): Promise<Report> => {
 
 const analyzeNews = async (articles: any[]): Promise<string> => {
   // OpenAI GPT를 사용하여 뉴스 분석
-  const openai = new OpenAI(import.meta.env.VITE_OPENAI_API_KEY)
-  
+  const openai = new OpenAI({ apiKey: import.meta.env.VITE_OPENAI_API_KEY })
+
   const prompt = `
     다음 뉴스 기사들을 분석하고 비즈니스 관점에서 중요한 내용을 요약해주세요:
-    ${articles.map(a => `${a.title}\n${a.summary}`).join('\n\n')}
+    ${articles.map((a: any) => `${a.title}\n${a.summary}`).join('\n\n')}
   `
 
   const completion = await openai.chat.completions.create({

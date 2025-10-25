@@ -1,6 +1,6 @@
 import { ImageAnnotatorClient } from '@google-cloud/vision'
-import { supabase } from '../utils/supabase'
-import type { Contact } from '../utils/supabase'
+import { supabase } from '../../utils/supabase'
+import type { Contact } from '../../utils/supabase'
 
 const visionClient = new ImageAnnotatorClient()
 

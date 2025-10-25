@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { WhisperService } from '../../services/stt/whisper.service'
+import { WhisperService } from '../services/stt/whisper.service'
 
 interface CallRecorderProps {
   contactId: string

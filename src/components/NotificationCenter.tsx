@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { notificationService, Notification } from '../../services/notifications/notification.service'
+import { notificationService, Notification } from '../services/notifications/notification.service'
 
 interface NotificationCenterProps {
   userId: string
