@@ -60,8 +60,30 @@ SELECT
 FROM contact_ids c
 ON CONFLICT DO NOTHING;
 
--- 4) 결과 확인
+-- 4) SmalltalkCache(스몰토크) 테스트 데이터 추가
+WITH contact_ids AS (
+  SELECT id, name FROM public.contacts WHERE name IN ('홍길동', '김철수', '이영희', '박민수')
+)
+INSERT INTO public.smalltalk_cache (contact_id, topic, content, expires_at, created_at)
+SELECT
+  c.id,
+  x.topic,
+  x.content,
+  NOW() + (x.expire_days || ' days')::interval AS expires_at,
+  NOW() AS created_at
+FROM contact_ids c
+CROSS JOIN (
+  VALUES
+    ('최근 골프 라운딩', '지난 주말 라운딩 어떠셨어요? 지난 번에 말씀하신 드라이버 교체는 해보셨나요?', 10),
+    ('아이 학부모 상담', '자녀 학교 상담 다녀오셨다고 했는데, 유익했는지 궁금합니다.', 7),
+    ('커피 취향', '지난 번 미팅 때 라떼 선호하신다고 하셔서, 다음에는 라떼로 준비드릴게요.', 5),
+    ('최근 산업 뉴스', '어제 업계 뉴스에 신제품 관련 기사가 있던데, 혹시 눈여겨보신 부분 있으신가요?', 14)
+) AS x(topic, content, expire_days)
+ON CONFLICT DO NOTHING;
+
+-- 5) 결과 확인
 SELECT 
   (SELECT COUNT(*) FROM public.contacts) as contacts_count,
   (SELECT COUNT(*) FROM public.reports) as reports_count,
-  (SELECT COUNT(*) FROM public.actions) as actions_count;
+  (SELECT COUNT(*) FROM public.actions) as actions_count,
+  (SELECT COUNT(*) FROM public.smalltalk_cache) as smalltalk_count;

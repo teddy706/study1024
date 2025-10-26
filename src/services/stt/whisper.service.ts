@@ -1,13 +1,19 @@
 import { supabase } from '../../utils/supabase'
 import type { Call } from '../../utils/supabase'
 import { OpenAI } from 'openai'
+import SmalltalkService from '../smalltalk.service'
 
 export class WhisperService {
-  private openai: any
+  private openai: any | null = null
 
-  constructor() {
-    // openai v4 usage
-    this.openai = new OpenAI({ apiKey: import.meta.env.VITE_OPENAI_API_KEY })
+  constructor() {}
+
+  private getOpenAI() {
+    if (!this.openai) {
+      // 주의: 데모 용도로만 브라우저에서 직접 호출 허용. 실제 서비스에선 서버/엣지에서 프록시하세요.
+      this.openai = new OpenAI({ apiKey: import.meta.env.VITE_OPENAI_API_KEY, dangerouslyAllowBrowser: true })
+    }
+    return this.openai
   }
 
   async transcribeAudio(audioFile: File): Promise<string> {
@@ -28,7 +34,7 @@ export class WhisperService {
   }
 
   async summarizeTranscription(transcription: string): Promise<string> {
-    const completion = await this.openai.chat.completions.create({
+  const completion = await this.getOpenAI().chat.completions.create({
       messages: [
         {
           role: 'system',
@@ -69,6 +75,15 @@ export class WhisperService {
         .single()
 
       if (error) throw error
+      // 4. 스몰토크 생성 및 저장 (best-effort)
+      try {
+        const st = new SmalltalkService()
+        const inserted = await st.generateFromSummary(summary, contactId)
+        console.log(`Smalltalk generated: ${inserted}`)
+      } catch (e) {
+        console.warn('Smalltalk generation failed:', e)
+      }
+
       return data
 
     } catch (error) {

@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import ContactDetail from './pages/ContactDetail'
 import ReportDetail from './pages/ReportDetail'
+import ContactsPage from './pages/Contacts'
 import './index.css'
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           {/* 공개 대시보드: 인증 없이 접근 가능 */}
           <Route path="/" element={<Dashboard userId="" />} />
+          <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/contacts/:id" element={<ContactDetail />} />
           <Route path="/reports/:id" element={<ReportDetail />} />
           <Route path="*" element={<Navigate to="/" replace />} />

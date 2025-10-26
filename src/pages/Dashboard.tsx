@@ -86,7 +86,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId }) => {
       const startIso = startDate ? new Date(startDate).toISOString() : null
       const endIso = endDate ? new Date(new Date(endDate).setHours(23,59,59,999)).toISOString() : null
 
-      const contactsQuery = supabase.from('contacts').select('*').order('last_contact', { ascending: false }).limit(6)
+      const contactsQuery = supabase
+        .from('contacts')
+        .select('*')
+        .order('last_contact', { ascending: false })
+        .limit(12)
       const reportsQuery = supabase.from('reports').select('*').order('created_at', { ascending: false }).limit(6)
       const actionsQuery = supabase.from('actions').select('*').order('due_date', { ascending: true }).limit(6)
 
@@ -104,7 +108,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId }) => {
       try {
         const { data: countsData, error: countsError } = await supabase.rpc('get_dashboard_counts', { 
           start_ts: startIso, 
-          end_ts: endIso 
+          end_ts: endIso,
+          companies: selectedCompany ? [selectedCompany] : null
         })
         
         if (!countsError && countsData) {
@@ -252,6 +257,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId }) => {
           <div className="flex items-center mb-8">
             <h2 className="text-4xl font-bold text-gray-900 tracking-tight">최근 고객</h2>
             <div className="ml-4 h-1 flex-1 bg-gradient-to-r from-gray-300 to-transparent rounded-full"></div>
+            <a href="/contacts" className="ml-4 text-sm text-blue-600 hover:underline">전체 보기</a>
           </div>
           <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 overflow-hidden border border-gray-100">
             <ContactList contacts={contacts} />

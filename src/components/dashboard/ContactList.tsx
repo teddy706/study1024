@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import React, { useEffect, useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import type { Contact } from '../../utils/supabase'
 
 type Props = {
@@ -10,6 +10,29 @@ export const ContactList: React.FC<Props> = ({ contacts }) => {
   const [query, setQuery] = useState('')
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([])
   const [sortKey, setSortKey] = useState<'name_asc' | 'name_desc' | 'company_asc' | 'last_desc' | 'last_asc'>('name_asc')
+  const [page, setPage] = useState(1)
+  const pageSize = 12
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // initialize from URL once
+  useEffect(() => {
+    const q = searchParams.get('q') || ''
+    const companiesParam = searchParams.get('companies') || ''
+    const sort = (searchParams.get('sort') as any) || 'name_asc'
+    if (q) setQuery(q)
+    if (companiesParam) setSelectedCompanies(companiesParam.split(',').filter(Boolean))
+    if (sort) setSortKey(sort)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // sync to URL
+  useEffect(() => {
+    const params: Record<string, string> = {}
+    if (query) params.q = query
+    if (selectedCompanies.length) params.companies = selectedCompanies.join(',')
+    if (sortKey && sortKey !== 'name_asc') params.sort = sortKey
+    setSearchParams(params)
+  }, [query, selectedCompanies, sortKey, setSearchParams])
 
   if (!contacts || contacts.length === 0) {
     return (
@@ -71,6 +94,11 @@ export const ContactList: React.FC<Props> = ({ contacts }) => {
 
     return sorted
   }, [contacts, query, selectedCompanies, sortKey])
+
+  const sliced = useMemo(() => {
+    return filtered.slice(0, page * pageSize)
+  }, [filtered, page])
+  const hasMore = sliced.length < filtered.length
 
   return (
     <div className="p-6">
@@ -156,8 +184,9 @@ export const ContactList: React.FC<Props> = ({ contacts }) => {
           <p className="text-sm text-gray-400 mt-1">다른 키워드로 검색해 보세요</p>
         </div>
       ) : (
+        <>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filtered.map(c => (
+          {sliced.map(c => (
         <Link
           key={c.id}
           to={`/contacts/${c.id}`}
@@ -198,6 +227,12 @@ export const ContactList: React.FC<Props> = ({ contacts }) => {
         </Link>
           ))}
         </div>
+        {hasMore && (
+          <div className="mt-6 flex justify-center">
+            <button className="btn btn-primary" onClick={() => setPage((p) => p + 1)}>더 보기</button>
+          </div>
+        )}
+        </>
       )}
     </div>
   )

@@ -1,12 +1,45 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../utils/supabase'
-import type { Contact } from '../utils/supabase'
+import type { Contact, SmalltalkCache } from '../utils/supabase'
+import SmalltalkPanel from '../components/contact/SmalltalkPanel'
+import { CallRecorder } from '../components/CallRecorder'
 
 export const ContactDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>()
   const [contact, setContact] = useState<Contact | null>(null)
   const [loading, setLoading] = useState(true)
+  const [smalltalks, setSmalltalks] = useState<SmalltalkCache[]>([])
+  const [stLoading, setStLoading] = useState(true)
+
+  const loadSmalltalks = async (contactId: string) => {
+    setStLoading(true)
+    try {
+      const nowIso = new Date().toISOString()
+      const { data, error } = await supabase
+        .from('smalltalk_cache')
+        .select('*')
+        .eq('contact_id', contactId)
+        .gt('expires_at', nowIso)
+        .order('expires_at', { ascending: false })
+        .limit(5)
+
+      if (error) throw error
+      let items = data || []
+      if (items.length === 0) {
+        const { data: fallback, error: fbErr } = await supabase
+          .from('smalltalk_cache')
+          .select('*')
+          .eq('contact_id', contactId)
+          .order('created_at', { ascending: false })
+          .limit(3)
+        if (!fbErr && fallback) items = fallback
+      }
+      setSmalltalks(items)
+    } finally {
+      setStLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (!id) return
@@ -17,6 +50,12 @@ export const ContactDetail: React.FC = () => {
       setContact(data ?? null)
       setLoading(false)
     })()
+  }, [id])
+
+  // Load smalltalk cache (prefer non-expired, newest first)
+  useEffect(() => {
+    if (!id) return
+    loadSmalltalks(id)
   }, [id])
 
   if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>
@@ -32,6 +71,30 @@ export const ContactDetail: React.FC = () => {
         <p className="mb-1">이메일: {contact.email}</p>
         <p className="mb-1">주소: {contact.address}</p>
         <p className="text-sm text-gray-500 mt-4">마지막 연락: {contact.last_contact}</p>
+        {/* 통화 녹음 및 AI 요약 → Smalltalk 생성 */}
+        <div className="mt-4">
+          <CallRecorder
+            contactId={contact.id}
+            onRecordingComplete={async () => {
+              if (contact?.id) await loadSmalltalks(contact.id)
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Smalltalk Section */}
+      <div className="mt-6">
+        {stLoading ? (
+          <div className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-24 mb-4" />
+            <div className="space-y-3">
+              <div className="h-14 bg-gray-100 rounded-xl" />
+              <div className="h-14 bg-gray-100 rounded-xl" />
+            </div>
+          </div>
+        ) : (
+          <SmalltalkPanel items={smalltalks} />
+        )}
       </div>
     </div>
   )
