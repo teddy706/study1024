@@ -8,6 +8,9 @@ node_modules
 .env.test
 .env.production
 
+# 환경 변수 스크립트 (실제 키 포함)
+scripts/setup-env.ps1
+
 # 로그 파일
 *.log
 npm-debug.log*

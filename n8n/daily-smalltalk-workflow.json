@@ -1,0 +1,295 @@
+{
+  "name": "Daily Smalltalk Generation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 22 * * *"
+            }
+          ]
+        }
+      },
+      "name": "매일 오후 10시 (KST 7시)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "id": "schedule-trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/get_recent_calls_for_smalltalk",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "days_back",
+              "value": "7"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "최근 통화 데이터 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        460,
+        300
+      ],
+      "id": "get-recent-calls"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "contact_id",
+              "name": "contact_id",
+              "value": "={{ $json.contact_id }}",
+              "type": "string"
+            },
+            {
+              "id": "contact_name",
+              "name": "contact_name",
+              "value": "={{ $json.contact_name }}",
+              "type": "string"
+            },
+            {
+              "id": "recent_summaries",
+              "name": "recent_summaries",
+              "value": "={{ $json.recent_summaries }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "각 고객별 처리",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        680,
+        300
+      ],
+      "id": "split-items"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"당신은 영업 담당자를 위한 스몰토크 주제 생성 전문가입니다. 고객과의 최근 통화 내용을 기반으로 자연스럽고 친근한 대화 주제를 만들어주세요.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"고객명: {{ $json.contact_name }}\\n\\n최근 통화 요약:\\n{{ $json.recent_summaries }}\\n\\n위 통화 내용을 바탕으로 다음 만남 시 사용할 수 있는 스몰토크 주제 2-3개를 JSON 배열로 생성해주세요. 각 항목은 다음 형식을 따라야 합니다:\\n[{\\\"topic\\\": \\\"주제 제목 (15자 이내)\\\", \\\"content\\\": \\\"구체적인 질문이나 언급 (50-80자)\\\", \\\"days\\\": 유효 기간(일수, 5-14 사이)}]\\n\\n응답은 반드시 유효한 JSON 배열만 포함해야 합니다.\"\n    }\n  ],\n  \"temperature\": 0.8,\n  \"max_tokens\": 500\n}",
+        "options": {}
+      },
+      "name": "OpenAI 스몰토크 생성",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        900,
+        300
+      ],
+      "id": "openai-generate"
+    },
+    {
+      "parameters": {
+        "jsCode": "// OpenAI 응답에서 JSON 배열 추출\nconst response = $input.item.json;\nconst content = response.choices[0].message.content;\n\n// JSON 파싱\ntry {\n  const smalltalks = JSON.parse(content);\n  \n  return {\n    json: {\n      contact_id: $node[\"각 고객별 처리\"].json.contact_id,\n      contact_name: $node[\"각 고객별 처리\"].json.contact_name,\n      items: smalltalks,\n      success: true\n    }\n  };\n} catch (error) {\n  // JSON 파싱 실패 시 폴백\n  return {\n    json: {\n      contact_id: $node[\"각 고객별 처리\"].json.contact_id,\n      contact_name: $node[\"각 고객별 처리\"].json.contact_name,\n      items: [\n        {\n          topic: \"최근 통화 후속\",\n          content: \"지난번 통화 내용 관련하여 추가로 논의할 사항이 있나요?\",\n          days: 7\n        }\n      ],\n      success: false,\n      error: error.message\n    }\n  };\n}"
+      },
+      "name": "JSON 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        300
+      ],
+      "id": "parse-json"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/insert_smalltalk_items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_contact_id\": \"{{ $json.contact_id }}\",\n  \"p_items\": {{ JSON.stringify($json.items) }}\n}",
+        "options": {}
+      },
+      "name": "Supabase에 저장",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1340,
+        300
+      ],
+      "id": "save-to-supabase"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "total_contacts",
+              "name": "total_contacts",
+              "value": "={{ $runIndex }}",
+              "type": "number"
+            },
+            {
+              "id": "contact_name",
+              "name": "contact_name",
+              "value": "={{ $json.contact_name }}",
+              "type": "string"
+            },
+            {
+              "id": "inserted_count",
+              "name": "inserted_count",
+              "value": "={{ $json.body }}",
+              "type": "number"
+            },
+            {
+              "id": "timestamp",
+              "name": "timestamp",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "결과 집계",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        1560,
+        300
+      ],
+      "id": "aggregate-results"
+    }
+  ],
+  "connections": {
+    "매일 오후 10시 (KST 7시)": {
+      "main": [
+        [
+          {
+            "node": "최근 통화 데이터 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "최근 통화 데이터 조회": {
+      "main": [
+        [
+          {
+            "node": "각 고객별 처리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "각 고객별 처리": {
+      "main": [
+        [
+          {
+            "node": "OpenAI 스몰토크 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI 스몰토크 생성": {
+      "main": [
+        [
+          {
+            "node": "JSON 파싱",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON 파싱": {
+      "main": [
+        [
+          {
+            "node": "Supabase에 저장",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase에 저장": {
+      "main": [
+        [
+          {
+            "node": "결과 집계",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-10-26T00:00:00.000Z",
+  "versionId": "1"
+}
