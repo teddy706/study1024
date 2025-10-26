@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Contact } from '../../utils/supabase'
 
@@ -7,6 +7,10 @@ type Props = {
 }
 
 export const ContactList: React.FC<Props> = ({ contacts }) => {
+  const [query, setQuery] = useState('')
+  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([])
+  const [sortKey, setSortKey] = useState<'name_asc' | 'name_desc' | 'company_asc' | 'last_desc' | 'last_asc'>('name_asc')
+
   if (!contacts || contacts.length === 0) {
     return (
       <div className="text-center py-16">
@@ -21,9 +25,139 @@ export const ContactList: React.FC<Props> = ({ contacts }) => {
     )
   }
 
+  const companies = useMemo(() => {
+    const set = new Set<string>()
+    contacts.forEach((c) => { if (c.company) set.add(String(c.company)) })
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [contacts])
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    let list = contacts
+    if (q) {
+      list = list.filter((c) => {
+        const fields = [c.name, c.company, c.position, c.phone, c.email]
+          .filter(Boolean)
+          .map((v) => String(v).toLowerCase())
+        return fields.some((f) => f.includes(q))
+      })
+    }
+
+    if (selectedCompanies.length > 0) {
+      const sel = new Set(selectedCompanies)
+      list = list.filter((c) => (c.company ? sel.has(String(c.company)) : false))
+    }
+
+    const toTime = (v: any) => {
+      const t = v ? new Date(v as any).getTime() : 0
+      return isNaN(t) ? 0 : t
+    }
+
+    const sorted = [...list].sort((a, b) => {
+      switch (sortKey) {
+        case 'name_desc':
+          return (b.name || '').localeCompare(a.name || '')
+        case 'company_asc':
+          return (a.company || '').localeCompare(b.company || '') || (a.name || '').localeCompare(b.name || '')
+        case 'last_desc':
+          return toTime(b.last_contact) - toTime(a.last_contact)
+        case 'last_asc':
+          return toTime(a.last_contact) - toTime(b.last_contact)
+        case 'name_asc':
+        default:
+          return (a.name || '').localeCompare(b.name || '')
+      }
+    })
+
+    return sorted
+  }, [contacts, query, selectedCompanies, sortKey])
+
   return (
-    <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {contacts.map(c => (
+    <div className="p-6">
+      {/* Search Bar */}
+      <div className="mb-3 flex items-center justify-between gap-4 flex-wrap">
+        <div className="relative w-full sm:w-80">
+          <svg className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input
+            className="input h-9 pl-9 pr-8"
+            type="text"
+            placeholder="검색 (이름, 회사, 직함, 전화, 이메일)"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="연락처 검색"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              aria-label="검색어 지우기"
+              className="absolute right-2 top-1.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <select
+            className="select h-9 text-sm"
+            value={sortKey}
+            onChange={(e) => setSortKey(e.target.value as any)}
+            aria-label="정렬"
+          >
+            <option value="name_asc">이름 A→Z</option>
+            <option value="name_desc">이름 Z→A</option>
+            <option value="company_asc">회사 A→Z</option>
+            <option value="last_desc">최근 연락일 최신순</option>
+            <option value="last_asc">최근 연락일 오래된순</option>
+          </select>
+          {(selectedCompanies.length > 0 || query) && (
+            <button className="btn btn-ghost h-9 px-3 text-sm" onClick={() => { setSelectedCompanies([]); setQuery('') }}>초기화</button>
+          )}
+        </div>
+      </div>
+
+      {/* Tag chips (companies) */}
+      {companies.length > 0 && (
+        <div className="mb-4 -mx-1 overflow-x-auto no-scrollbar">
+          <div className="px-1 flex items-center gap-2 min-w-max">
+            {companies.map((co) => {
+              const active = selectedCompanies.includes(co)
+              return (
+                <button
+                  key={co}
+                  type="button"
+                  onClick={() => setSelectedCompanies((prev) => active ? prev.filter(p => p !== co) : [...prev, co])}
+                  className={`badge ${active ? 'badge-primary' : 'badge-gray'}`}
+                  aria-pressed={active}
+                >
+                  {co}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-16">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+            <svg className="w-8 h-8 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </div>
+          <p className="text-gray-600 font-medium">검색 결과가 없습니다</p>
+          <p className="text-sm text-gray-400 mt-1">다른 키워드로 검색해 보세요</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filtered.map(c => (
         <Link
           key={c.id}
           to={`/contacts/${c.id}`}
@@ -62,7 +196,9 @@ export const ContactList: React.FC<Props> = ({ contacts }) => {
             </div>
           </div>
         </Link>
-      ))}
+          ))}
+        </div>
+      )}
     </div>
   )
 }
