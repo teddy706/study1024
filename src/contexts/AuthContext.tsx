@@ -15,24 +15,27 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true) // 초기 로딩 상태
 
   useEffect(() => {
     let mounted = true
 
-    supabase.auth.getUser().then(({ data }) => {
+    // 현재 세션 확인
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return
-      setUser(data?.user ?? null)
+      setUser(session?.user ?? null)
       setLoading(false)
     })
 
-    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+    // 인증 상태 변경 감지
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
+      setLoading(false)
     })
 
     return () => {
       mounted = false
-      listener?.subscription.unsubscribe()
+      subscription.unsubscribe()
     }
   }, [])
 

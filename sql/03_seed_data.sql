@@ -20,13 +20,13 @@ DECLARE
   v_contact_id_3 UUID;
   v_contact_id_4 UUID;
 BEGIN
-  -- 사용자 ID가 없으면 경고 메시지 출력
+  -- 사용자 ID가 없으면 기본 사용자 사용 (테스트용)
+  -- Supabase Dashboard → Authentication → Users에서 사용자 UUID를 복사하여 아래에 입력하세요
   IF v_user_id IS NULL THEN
-    RAISE WARNING '⚠️ 사용자가 인증되지 않았습니다. SQL Editor에서는 auth.uid()가 NULL입니다.';
-    RAISE WARNING '대안: 1) 프론트엔드에서 로그인 후 실행';
-    RAISE WARNING '     2) 또는 아래 주석을 해제하고 실제 사용자 UUID를 입력하세요:';
-    RAISE WARNING '     v_user_id := ''00000000-0000-0000-0000-000000000000''::UUID;';
-    RETURN;
+    -- 아래 UUID를 실제 사용자 UUID로 교체하세요!
+    v_user_id := 'db1cae9d-5426-4cad-97ef-9c5c52ff2f36'::UUID;
+    RAISE NOTICE '⚠️ 기본 사용자 ID 사용 중: %', v_user_id;
+    RAISE NOTICE '실제 사용자 ID를 입력하려면 위 라인을 수정하세요.';
   END IF;
 
   -- =====================================================

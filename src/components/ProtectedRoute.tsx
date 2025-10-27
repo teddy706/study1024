@@ -1,4 +1,5 @@
 import React from 'react'
+import { Navigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import LoadingSpinner from './ui/LoadingSpinner'
 
@@ -14,8 +15,11 @@ export const ProtectedRoute: React.FC<Props> = ({ children }) => {
     return <LoadingSpinner fullScreen />
   }
 
-  // 인증 체크 제거 - 모든 사용자 접근 허용
-  // TODO: 프로덕션에서는 실제 인증 로직 구현 필요
+  // 인증되지 않은 사용자는 로그인 페이지로 리다이렉트
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
   return children
 }
 

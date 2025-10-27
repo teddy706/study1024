@@ -22,6 +22,7 @@ export interface Database {
           created_at: string
           last_contact: string | null
           user_id: string
+          interests: string | null
         }
         Insert: {
           id?: string
@@ -35,6 +36,7 @@ export interface Database {
           created_at?: string
           last_contact?: string | null
           user_id: string
+          interests?: string | null
         }
         Update: {
           id?: string
@@ -48,6 +50,7 @@ export interface Database {
           created_at?: string
           last_contact?: string | null
           user_id?: string
+          interests?: string | null
         }
       }
       reports: {
@@ -143,6 +146,7 @@ export interface Database {
           expires_at: string
           created_at: string
           user_id: string
+          meta?: Json
         }
         Insert: {
           id?: string
@@ -152,6 +156,7 @@ export interface Database {
           expires_at: string
           created_at?: string
           user_id: string
+          meta?: Json
         }
         Update: {
           id?: string
@@ -161,6 +166,7 @@ export interface Database {
           expires_at?: string
           created_at?: string
           user_id?: string
+          meta?: Json
         }
       }
       notifications: {

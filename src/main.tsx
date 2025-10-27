@@ -7,6 +7,7 @@ import { Dashboard } from './pages/Dashboard'
 import ContactDetail from './pages/ContactDetail'
 import ReportDetail from './pages/ReportDetail'
 import ContactsPage from './pages/Contacts'
+import { Login } from './pages/Login'
 import ProtectedRoute from './components/ProtectedRoute'
 import './index.css'
 
@@ -16,6 +17,9 @@ function App() {
       <AuthProvider>
         <BrowserRouter basename="/study1024">
           <Routes>
+            {/* 로그인 페이지 (인증 불필요) */}
+            <Route path="/login" element={<Login />} />
+            
             {/* 모든 라우트가 보호됨 - 인증 필요 */}
             <Route 
               path="/" 
