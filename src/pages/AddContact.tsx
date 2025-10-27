@@ -168,11 +168,13 @@ export const AddContact: React.FC = () => {
       }
 
       // 연락처 저장
-      const { error: insertError } = await supabase.from('contacts').insert({
-        ...formData,
-        business_card_image_url: imageUrl || null,
-        user_id: userData.user.id,
-      })
+      const { error: insertError } = await supabase
+        .from('contacts')
+        .insert({
+          ...formData,
+          business_card_image_url: imageUrl || null,
+          user_id: userData.user.id,
+        })
 
       if (insertError) throw insertError
 
