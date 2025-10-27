@@ -259,6 +259,29 @@ export interface Database {
           updated_at?: string
         }
       }
+      meetings: {
+        Row: {
+          id: number
+          contact_id: string
+          met_at: string
+          memo: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          contact_id: string
+          met_at?: string
+          memo?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          contact_id?: string
+          met_at?: string
+          memo?: string | null
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

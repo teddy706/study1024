@@ -54,10 +54,15 @@ const parseBusinessCardText = (text: string): Omit<Contact, 'id' | 'created_at' 
     company: lines[1] || '',
     position: lines[2] || '',
     phone: extractPhone(text),
+    mobile: null,
+    office_phone: null,
+    fax: null,
     phone_link: '',
     email: extractEmail(text),
     address: extractAddress(lines),
-    user_id: '' // 실제 구현시 사용자 ID 설정
+    user_id: '', // 실제 구현시 사용자 ID 설정
+    interests: null,
+    business_card_image_url: null
   }
 }
 
