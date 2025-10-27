@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { supabase } from '../utils/supabase'
-import type { Contact, SmalltalkCache } from '../utils/supabase'
+import { supabase } from '../config/supabase'
+import type { Database } from '../types/supabase'
+
+type Contact = Database['public']['Tables']['contacts']['Row']
+type SmalltalkCache = Database['public']['Tables']['smalltalk_cache']['Row']
 import SmalltalkPanel from '../components/contact/SmalltalkPanel'
 import { CallRecorder } from '../components/CallRecorder'
 

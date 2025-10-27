@@ -1,12 +1,20 @@
-import { ImageAnnotatorClient } from '@google-cloud/vision'
-import { supabase } from '../../utils/supabase'
-import type { Contact } from '../../utils/supabase'
+// NOTE: Google Cloud Vision은 브라우저에서 사용할 수 없으므로 주석 처리
+// import { ImageAnnotatorClient } from '@google-cloud/vision'
+import { supabase } from '../../config/supabase'
+import type { Database } from '../../types/supabase'
 
-const visionClient = new ImageAnnotatorClient()
+type Contact = Database['public']['Tables']['contacts']['Row']
+
+// Vision Client는 서버 측에서만 사용 가능
+// const visionClient = new ImageAnnotatorClient()
 
 export const processBusinessCard = async (imageData: string): Promise<Contact> => {
+  // NOTE: Google Cloud Vision은 브라우저 환경에서 사용 불가
+  // 실제 구현은 Edge Function 또는 서버 사이드에서 처리 필요
+  throw new Error('processBusinessCard는 브라우저에서 직접 호출할 수 없습니다. Edge Function을 사용하세요.')
+  
+  /* 원본 코드 (서버 측에서만 사용 가능)
   try {
-    // Google Vision AI로 OCR 처리
     const [result] = await visionClient.textDetection({
       image: { content: imageData }
     })
@@ -34,6 +42,7 @@ export const processBusinessCard = async (imageData: string): Promise<Contact> =
     console.error('Error processing business card:', error)
     throw error
   }
+  */
 }
 
 const parseBusinessCardText = (text: string): Omit<Contact, 'id' | 'created_at' | 'last_contact'> => {
@@ -47,7 +56,8 @@ const parseBusinessCardText = (text: string): Omit<Contact, 'id' | 'created_at' 
     phone: extractPhone(text),
     phone_link: '',
     email: extractEmail(text),
-    address: extractAddress(lines)
+    address: extractAddress(lines),
+    user_id: '' // 실제 구현시 사용자 ID 설정
   }
 }
 

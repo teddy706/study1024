@@ -1,4 +1,4 @@
-import { supabase } from '../utils/supabase'
+import { supabase } from '../config/supabase'
 
 type GenItem = { topic: string; content: string; expire_days?: number }
 

@@ -1,5 +1,7 @@
 import React from 'react'
-import type { SmalltalkCache } from '../../utils/supabase'
+import type { Database } from '../../types/supabase'
+
+type SmalltalkCache = Database['public']['Tables']['smalltalk_cache']['Row']
 
 type Props = {
   items: SmalltalkCache[]

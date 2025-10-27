@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { supabase } from '../utils/supabase'
-import type { Contact } from '../utils/supabase'
+import { useAuth } from '../hooks/useAuth'
+import { supabase } from '../config/supabase'
+import type { Database } from '../types/supabase'
+import SkeletonLoader from '../components/ui/SkeletonLoader'
+
+type Contact = Database['public']['Tables']['contacts']['Row']
 import ContactList from '../components/dashboard/ContactList'
 import { Link, useSearchParams } from 'react-router-dom'
 
@@ -69,7 +73,9 @@ export const ContactsPage: React.FC = () => {
 
         <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 overflow-hidden border border-gray-100">
           {loading && contacts.length === 0 ? (
-            <div className="p-8">로딩 중…</div>
+            <div className="p-8">
+              <SkeletonLoader variant="card" count={6} className="mb-4" />
+            </div>
           ) : (
             <ContactList contacts={contacts} />
           )}

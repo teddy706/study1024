@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { supabase } from '../utils/supabase'
-import type { Contact, Report, Action } from '../utils/supabase'
+import { supabase } from '../config/supabase'
+import type { Database } from '../types/supabase'
+import { useAuth } from '../hooks/useAuth'
+import LoadingSpinner from '../components/ui/LoadingSpinner'
+import SkeletonLoader from '../components/ui/SkeletonLoader'
+
+type Contact = Database['public']['Tables']['contacts']['Row']
+type Report = Database['public']['Tables']['reports']['Row']
+type Action = Database['public']['Tables']['actions']['Row']
 import Navbar from '../components/dashboard/Navbar'
 import ContactList from '../components/dashboard/ContactList'
 import ReportsList from '../components/dashboard/ReportsList'
@@ -9,11 +16,9 @@ import FilterBar from '../components/dashboard/FilterBar'
 import { useSearchParams } from 'react-router-dom'
 import ScoreboardNumber from '../components/ui/ScoreboardNumber'
 
-interface DashboardProps {
-  userId: string
-}
-
-export const Dashboard: React.FC<DashboardProps> = ({ userId }) => {
+export const Dashboard: React.FC = () => {
+  const { user } = useAuth()
+  const userId = user?.id || ''
   const [contacts, setContacts] = useState<Contact[]>([])
   const [reports, setReports] = useState<Report[]>([])
   const [actions, setActions] = useState<Action[]>([])
@@ -55,7 +60,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId }) => {
   const fetchCompaniesServerFirst = async () => {
     try {
       // prefer SQL rpc get_companies if exists
-      const { data: rpcData, error: rpcError } = await supabase.rpc('get_companies')
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_companies') as { data: any[] | null, error: any }
       if (!rpcError && Array.isArray(rpcData)) {
         setCompanies(rpcData.map((r: any) => r.company).filter(Boolean))
         return
@@ -110,11 +115,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId }) => {
           start_ts: startIso, 
           end_ts: endIso,
           companies: selectedCompany ? [selectedCompany] : null
-        })
+        } as any) as { data: any, error: any }
         
         if (!countsError && countsData) {
           // countsData may be an array with one object or a single object
-          const counts = Array.isArray(countsData) ? countsData[0] : countsData
+          const counts: any = Array.isArray(countsData) ? countsData[0] : countsData
           
           // Fetch list items for display
           const [{ data: contactsData }, { data: reportsData }, { data: actionsData }] = await Promise.all([

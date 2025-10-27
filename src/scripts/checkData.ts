@@ -1,8 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
-import * as dotenv from 'dotenv'
-
-// Load .env file
-dotenv.config()
+// dotenv는 Node.js 전용이므로 제거. Vite는 .env 파일을 자동으로 로드함
+// import * as dotenv from 'dotenv'
+// dotenv.config()
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL!
 const supabaseKey = process.env.VITE_SUPABASE_KEY!

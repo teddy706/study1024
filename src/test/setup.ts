@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom'
 import { beforeAll, afterEach, afterAll } from 'vitest'
 import { cleanup } from '@testing-library/react'
-import { supabase } from '../utils/supabase'
+import { supabase } from '../config/supabase'
 
 // Clean up after each test
 afterEach(() => {

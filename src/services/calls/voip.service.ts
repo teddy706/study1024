@@ -1,4 +1,6 @@
-import type { Call } from '../../utils/supabase'
+import type { Database } from '../../types/supabase'
+
+type Call = Database['public']['Tables']['calls']['Row']
 
 export class VoIPService {
   private voipProvider: any // 실제 구현에서는 VoIP 서비스 제공자의 SDK 사용
@@ -32,7 +34,8 @@ export class VoIPService {
         recording_url: '',
         summary: '',
         duration: 0,
-        called_at: new Date().toISOString()
+        called_at: new Date().toISOString(),
+        user_id: '' // 실제 구현시 사용자 ID 설정
       }
 
     } catch (error) {

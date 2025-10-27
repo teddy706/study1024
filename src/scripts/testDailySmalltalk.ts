@@ -1,17 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
-import * as dotenv from 'dotenv'
+// NOTE: Node.js 스크립트에서는 dotenv 대신 --env-file 플래그 사용
+// 실행 예: node --env-file=.env src/scripts/testDailySmalltalk.ts
 
-dotenv.config()
+const supabaseUrl = process.env.VITE_SUPABASE_URL!
+const supabaseKey = process.env.VITE_SUPABASE_KEY!
 
-const url = process.env.VITE_SUPABASE_URL!
-const key = process.env.VITE_SUPABASE_KEY!
-
-if (!url || !key) {
+if (!supabaseUrl || !supabaseKey) {
   console.error('❌ Missing VITE_SUPABASE_URL or VITE_SUPABASE_KEY')
   process.exit(1)
 }
 
-const supabase = createClient(url, key)
+const supabase = createClient(supabaseUrl, supabaseKey)
 
 async function testDailySmalltalk() {
   console.log('🧪 Testing daily smalltalk generation...\n')
@@ -20,7 +19,7 @@ async function testDailySmalltalk() {
   const isLocal = process.argv.includes('--local')
   const functionUrl = isLocal
     ? 'http://localhost:54321/functions/v1/generate-daily-smalltalk'
-    : `${url}/functions/v1/generate-daily-smalltalk`
+    : `${supabaseUrl}/functions/v1/generate-daily-smalltalk`
 
   console.log(`📍 Calling: ${functionUrl}`)
   console.log(`🔑 Using ${isLocal ? 'local' : 'production'} environment\n`)
@@ -29,7 +28,7 @@ async function testDailySmalltalk() {
     const response = await fetch(functionUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${key}`,
+        'Authorization': `Bearer ${supabaseKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({}),

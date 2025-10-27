@@ -1,4 +1,4 @@
-import { supabase } from '../../utils/supabase'
+import { supabase } from '../../config/supabase'
 
 export interface Notification {
   id: string
@@ -40,7 +40,7 @@ class NotificationService {
 
     const { data, error } = await supabase
       .from('notifications')
-      .insert(notification)
+      .insert(notification as any)
       .select()
       .single()
 
@@ -49,8 +49,9 @@ class NotificationService {
   }
 
   async markAsRead(notificationId: string): Promise<void> {
-    const { error } = await supabase
-      .from('notifications')
+    // Supabase 타입 시스템 문제로 any 타입 사용
+    const query = supabase.from('notifications') as any
+    const { error } = await query
       .update({ read: true })
       .eq('id', notificationId)
 

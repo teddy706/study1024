@@ -1,8 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
-import * as dotenv from 'dotenv'
-
-// Load .env file
-dotenv.config()
+// NOTE: Node.js 스크립트에서는 dotenv 대신 --env-file 플래그 사용
+// 실행 예: node --env-file=.env src/scripts/testSupabaseFunctions.ts
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL!
 const supabaseKey = process.env.VITE_SUPABASE_KEY!

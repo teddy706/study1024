@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { supabase } from '../utils/supabase'
-import type { Report } from '../utils/supabase'
+import { supabase } from '../config/supabase'
+import type { Database } from '../types/supabase'
+
+type Report = Database['public']['Tables']['reports']['Row']
 
 export const ReportDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>()

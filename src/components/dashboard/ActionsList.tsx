@@ -1,5 +1,7 @@
 import React from 'react'
-import type { Action } from '../../utils/supabase'
+import type { Database } from '../../types/supabase'
+
+type Action = Database['public']['Tables']['actions']['Row']
 
 type Props = { actions: Action[] }
 

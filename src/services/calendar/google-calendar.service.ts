@@ -1,7 +1,8 @@
 import { google } from 'googleapis'
-import { OpenAI } from 'openai'
-import { supabase } from '../../utils/supabase'
-import type { Action } from '../../utils/supabase'
+import { supabase } from '../../config/supabase'
+import type { Database } from '../../types/supabase'
+
+type Action = Database['public']['Tables']['actions']['Row']
 
 const calendar = google.calendar('v3')
 
@@ -42,7 +43,7 @@ export const scheduleEvent = async (summary: string, description: string, startT
 
     const { data, error } = await supabase
       .from('actions')
-      .insert(action)
+      .insert(action as any)
       .select()
       .single()
 
@@ -56,30 +57,15 @@ export const scheduleEvent = async (summary: string, description: string, startT
 }
 
 export const extractDateFromText = async (text: string): Promise<{ startTime: Date, endTime: Date }> => {
-  // GPT를 사용하여 텍스트에서 날짜/시간 정보 추출
-  const openai = new OpenAI({ apiKey: import.meta.env.VITE_OPENAI_API_KEY })
-
-  const prompt = `
-    다음 텍스트에서 약속 날짜와 시간을 추출해주세요:
-    "${text}"
-    
-    JSON 형식으로 응답해주세요:
-    {
-      "date": "YYYY-MM-DD",
-      "startTime": "HH:mm",
-      "duration": "minutes"
-    }
-  `
-
-  const completion = await openai.chat.completions.create({
-    messages: [{ role: 'user', content: prompt }],
-    model: 'gpt-4-mini'
+  // Edge Function으로 날짜 추출 위임 (OpenAI 키 서버 측 보호)
+  const { data, error } = await supabase.functions.invoke('extract-date', {
+    body: { text },
   })
 
-  const result = JSON.parse(completion.choices[0].message.content || '{}')
+  if (error) throw error
   
-  const startTime = new Date(`${result.date}T${result.startTime}:00`)
-  const endTime = new Date(startTime.getTime() + result.duration * 60000)
+  const startTime = new Date(data.startTime)
+  const endTime = new Date(data.endTime)
 
   return { startTime, endTime }
 }

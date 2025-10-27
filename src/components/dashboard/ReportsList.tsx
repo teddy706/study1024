@@ -1,6 +1,8 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import type { Report } from '../../utils/supabase'
+import type { Database } from '../../types/supabase'
+
+type Report = Database['public']['Tables']['reports']['Row']
 
 type Props = { reports: Report[] }
 

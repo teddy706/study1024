@@ -1,5 +1,7 @@
-import { supabase } from '../../utils/supabase'
-import type { Call } from '../../utils/supabase'
+import { supabase } from '../../config/supabase'
+import type { Database } from '../../types/supabase'
+
+type Call = Database['public']['Tables']['calls']['Row']
 
 export class WhisperService {
   constructor() {}

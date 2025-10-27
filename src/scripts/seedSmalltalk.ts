@@ -1,17 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
-import * as dotenv from 'dotenv'
+// NOTE: Node.js 스크립트에서는 dotenv 대신 --env-file 플래그 사용
+// 실행 예: node --env-file=.env src/scripts/seedSmalltalk.ts
 
-dotenv.config()
+const supabaseUrl = process.env.VITE_SUPABASE_URL!
+const supabaseKey = process.env.VITE_SUPABASE_KEY!
 
-const url = process.env.VITE_SUPABASE_URL!
-const key = process.env.VITE_SUPABASE_KEY!
-
-if (!url || !key) {
+if (!supabaseUrl || !supabaseKey) {
   console.error('❌ Missing VITE_SUPABASE_URL or VITE_SUPABASE_KEY in .env')
   process.exit(1)
 }
 
-const supabase = createClient(url, key)
+const supabase = createClient(supabaseUrl, supabaseKey)
 
 async function main() {
   console.log('🔧 Seeding smalltalk_cache samples...')

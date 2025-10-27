@@ -1,15 +1,23 @@
-import { ApifyClient } from 'apify-client'
-import { supabase } from '../../utils/supabase'
-import type { Contact, Report } from '../../utils/supabase'
-import { OpenAI } from 'openai'
+// NOTE: ApifyClient는 브라우저에서 사용할 수 없으므로 주석 처리
+// import { ApifyClient } from 'apify-client'
+import { supabase } from '../../config/supabase'
+import type { Database } from '../../types/supabase'
 
-const apifyClient = new ApifyClient({
-  token: import.meta.env.VITE_APIFY_TOKEN,
-})
+type Contact = Database['public']['Tables']['contacts']['Row']
+type Report = Database['public']['Tables']['reports']['Row']
+
+// ApifyClient는 서버 측(Edge Functions)에서만 사용 가능
+// const apifyClient = new ApifyClient({
+//   token: import.meta.env.VITE_APIFY_TOKEN,
+// })
 
 export const generateNewsReport = async (contact: Contact): Promise<Report> => {
+  // NOTE: ApifyClient는 브라우저 환경에서 사용 불가
+  // 실제 구현은 Edge Function 또는 서버 사이드에서 처리 필요
+  throw new Error('generateNewsReport는 브라우저에서 직접 호출할 수 없습니다. Edge Function을 사용하세요.')
+  
+  /* 원본 코드 (서버 측에서만 사용 가능)
   try {
-    // 뉴스 수집
     const run = await apifyClient.actor('apify/web-scraper').call({
       startUrls: [
         { url: `https://search.naver.com/search.naver?where=news&query=${contact.company}` },
@@ -29,11 +37,8 @@ export const generateNewsReport = async (contact: Contact): Promise<Report> => {
     })
 
     const dataset: any = await apifyClient.dataset(run.defaultDatasetId).listItems()
-
-    // GPT를 사용하여 뉴스 분석 및 요약
     const summary = await analyzeNews(dataset)
 
-    // 리포트 생성 및 저장
     const report = {
       contact_id: contact.id,
       type: 'news',
@@ -49,26 +54,20 @@ export const generateNewsReport = async (contact: Contact): Promise<Report> => {
 
     if (error) throw error
     return data
-
   } catch (error) {
     console.error('Error generating news report:', error)
     throw error
   }
+  */
 }
 
+// Edge Function으로 뉴스 분석 위임 (OpenAI 키 서버 측 보호)
 const analyzeNews = async (articles: any[]): Promise<string> => {
-  // OpenAI GPT를 사용하여 뉴스 분석
-  const openai = new OpenAI({ apiKey: import.meta.env.VITE_OPENAI_API_KEY })
-
-  const prompt = `
-    다음 뉴스 기사들을 분석하고 비즈니스 관점에서 중요한 내용을 요약해주세요:
-    ${articles.map((a: any) => `${a.title}\n${a.summary}`).join('\n\n')}
-  `
-
-  const completion = await openai.chat.completions.create({
-    messages: [{ role: 'user', content: prompt }],
-    model: 'gpt-4-mini'
+  // Edge Function으로 뉴스 분석 위임 (OpenAI 키 서버 측 보호)
+  const { data, error } = await supabase.functions.invoke('analyze-news', {
+    body: { articles },
   })
 
-  return completion.choices[0].message.content || ''
+  if (error) throw error
+  return String(data?.summary ?? '')
 }

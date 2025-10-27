@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import type { Contact } from '../../utils/supabase'
+import type { Database } from '../../types/supabase'
+
+type Contact = Database['public']['Tables']['contacts']['Row']
 
 type Props = {
   contacts: Contact[]

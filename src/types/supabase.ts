@@ -163,6 +163,35 @@ export interface Database {
           user_id?: string
         }
       }
+      notifications: {
+        Row: {
+          id: string
+          type: 'report' | 'schedule' | 'news'
+          title: string
+          message: string
+          userId: string
+          read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          type: 'report' | 'schedule' | 'news'
+          title: string
+          message: string
+          userId: string
+          read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          type?: 'report' | 'schedule' | 'news'
+          title?: string
+          message?: string
+          userId?: string
+          read?: boolean
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
