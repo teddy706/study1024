@@ -33,6 +33,9 @@ export const Navbar: React.FC = () => {
           <Link className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors duration-200" to="/">
             대시보드
           </Link>
+          <Link className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors duration-200" to="/report-settings">
+            리포트 설정
+          </Link>
           {user ? (
             <>
               <span className="text-sm text-gray-600">

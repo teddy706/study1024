@@ -8,6 +8,7 @@ import ContactDetail from './pages/ContactDetail'
 import ReportDetail from './pages/ReportDetail'
 import ContactsPage from './pages/Contacts'
 import AddContact from './pages/AddContact'
+import ReportSettings from './pages/ReportSettings'
 import { Login } from './pages/Login'
 import ProtectedRoute from './components/ProtectedRoute'
 import './index.css'
@@ -59,6 +60,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ReportDetail />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/report-settings" 
+              element={
+                <ProtectedRoute>
+                  <ReportSettings />
                 </ProtectedRoute>
               } 
             />

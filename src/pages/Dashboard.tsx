@@ -4,6 +4,7 @@ import type { Database } from '../types/supabase'
 import { useAuth } from '../hooks/useAuth'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import SkeletonLoader from '../components/ui/SkeletonLoader'
+import { OrganizationReportService } from '../services/organizationReport.service'
 
 type Contact = Database['public']['Tables']['contacts']['Row']
 type Report = Database['public']['Tables']['reports']['Row']
@@ -12,8 +13,6 @@ import Navbar from '../components/dashboard/Navbar'
 import ContactList from '../components/dashboard/ContactList'
 import ReportsList from '../components/dashboard/ReportsList'
 import ActionsList from '../components/dashboard/ActionsList'
-import FilterBar from '../components/dashboard/FilterBar'
-import { useSearchParams } from 'react-router-dom'
 import ScoreboardNumber from '../components/ui/ScoreboardNumber'
 
 export const Dashboard: React.FC = () => {
@@ -22,74 +21,17 @@ export const Dashboard: React.FC = () => {
   const [contacts, setContacts] = useState<Contact[]>([])
   const [reports, setReports] = useState<Report[]>([])
   const [actions, setActions] = useState<Action[]>([])
-  const [companies, setCompanies] = useState<string[]>([])
-  const [startDate, setStartDate] = useState<string>('')
-  const [endDate, setEndDate] = useState<string>('')
-  const [selectedCompany, setSelectedCompany] = useState<string>('')
   const [statsCounts, setStatsCounts] = useState<{ contact: number; report: number; action: number }>({ contact: 0, report: 0, action: 0 })
   const [loading, setLoading] = useState(true)
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [generatingReport, setGeneratingReport] = useState(false)
 
   useEffect(() => {
-    // initialize filters from querystring
-    const s = searchParams.get('start') || ''
-    const e = searchParams.get('end') || ''
-    const c = searchParams.get('company') || ''
-    setStartDate(s)
-    setEndDate(e)
-    setSelectedCompany(c)
-
-    // fetch companies and initial data
-    fetchCompaniesServerFirst()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  useEffect(() => {
-    // update querystring when filters change
-    const params: any = {}
-    if (startDate) params.start = startDate
-    if (endDate) params.end = endDate
-    if (selectedCompany) params.company = selectedCompany
-    setSearchParams(params)
-    // reload data
     loadDashboardData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startDate, endDate, selectedCompany])
-
-  // Try server-side company distinct first, fallback to client-side
-  const fetchCompaniesServerFirst = async () => {
-    try {
-      // prefer SQL rpc get_companies if exists
-      const { data: rpcData, error: rpcError } = await supabase.rpc('get_companies') as { data: any[] | null, error: any }
-      if (!rpcError && Array.isArray(rpcData)) {
-        setCompanies(rpcData.map((r: any) => r.company).filter(Boolean))
-        return
-      }
-    } catch (err) {
-      // ignore and fallback
-    }
-    // fallback to client-side distinct
-    fetchCompanies()
-  }
-
-  const fetchCompanies = async () => {
-    try {
-      const { data, error } = await supabase.from('contacts').select('company').limit(1000)
-      if (error) throw error
-      const list = Array.from(new Set((data || []).map((r: any) => r.company).filter(Boolean)))
-      setCompanies(list)
-    } catch (err) {
-      console.error('Error fetching companies:', err)
-    }
-  }
+  }, [])
 
   const loadDashboardData = async () => {
     try {
       setLoading(true)
-
-      // build ISO range if dates provided
-      const startIso = startDate ? new Date(startDate).toISOString() : null
-      const endIso = endDate ? new Date(new Date(endDate).setHours(23,59,59,999)).toISOString() : null
 
       const contactsQuery = supabase
         .from('contacts')
@@ -99,22 +41,12 @@ export const Dashboard: React.FC = () => {
       const reportsQuery = supabase.from('reports').select('*').order('created_at', { ascending: false }).limit(6)
       const actionsQuery = supabase.from('actions').select('*').order('due_date', { ascending: true }).limit(6)
 
-      if (selectedCompany) contactsQuery.eq('company', selectedCompany)
-      if (startIso) contactsQuery.gte('last_contact', startIso)
-      if (endIso) contactsQuery.lte('last_contact', endIso)
-
-      if (startIso) reportsQuery.gte('created_at', startIso)
-      if (endIso) reportsQuery.lte('created_at', endIso)
-
-      if (startIso) actionsQuery.gte('due_date', startIso)
-      if (endIso) actionsQuery.lte('due_date', endIso)
-
       // Attempt to fetch aggregated counts from server-side function for performance
       try {
         const { data: countsData, error: countsError } = await supabase.rpc('get_dashboard_counts', { 
-          start_ts: startIso, 
-          end_ts: endIso,
-          companies: selectedCompany ? [selectedCompany] : null
+          start_ts: null, 
+          end_ts: null,
+          companies: null
         } as any) as { data: any, error: any }
         
         if (!countsError && countsData) {
@@ -171,6 +103,28 @@ export const Dashboard: React.FC = () => {
     }
   }
 
+  const handleGenerateReport = async () => {
+    try {
+      setGeneratingReport(true)
+      const reportService = new OrganizationReportService()
+      
+      // AI 리포트 생성
+      const reportContent = await reportService.generateOrganizationReport()
+      
+      // 리포트 저장
+      await reportService.saveReport(reportContent)
+      
+      alert('✅ 조직 동향 리포트가 성공적으로 생성되었습니다!')
+      loadDashboardData() // 리포트 목록 새로고침
+    } catch (error) {
+      console.error('Error generating report:', error)
+      const errorMessage = error instanceof Error ? error.message : '리포트 생성 중 오류가 발생했습니다.'
+      alert(`❌ ${errorMessage}`)
+    } finally {
+      setGeneratingReport(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -189,35 +143,16 @@ export const Dashboard: React.FC = () => {
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDI1NSwgMjU1LCAyNTUsIDAuMDMpIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-30"></div>
-        <div className="container mx-auto px-6 py-20 relative z-10">
-          <h1 className="text-5xl md:text-7xl font-bold mb-4 tracking-tight">대시보드</h1>
-          <p className="text-xl md:text-2xl text-gray-300 font-light">오늘의 업무 현황을 한눈에</p>
-        </div>
+        
       </div>
 
-      <main className="container mx-auto px-6 -mt-12 relative z-20">
-        {/* Filter Bar with Apple-style card */}
-        <div className="mb-12">
-          <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 p-8 backdrop-blur-xl border border-gray-100">
-            <FilterBar
-              startDate={startDate}
-              endDate={endDate}
-              company={selectedCompany}
-              companies={companies}
-              onStartDateChange={setStartDate}
-              onEndDateChange={setEndDate}
-              onCompanyChange={setSelectedCompany}
-              onClear={() => { setStartDate(''); setEndDate(''); setSelectedCompany('') }}
-            />
-          </div>
-        </div>
-
+      <main className="container mx-auto px-6 py-8 relative z-20">
         {/* Stats Cards - Apple style with scoreboard animation */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
           <div className="group bg-gradient-to-br from-blue-500 to-blue-600 rounded-3xl p-8 shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105 cursor-pointer">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-sm font-medium mb-2">고객 수</p>
+                <p className="text-blue-100 text-sm font-medium mb-2">연락처 수</p>
                 <ScoreboardNumber value={statsCounts.contact ?? contacts.length} className="text-5xl font-bold text-white" />
               </div>
               <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm" style={{maxWidth: 56, maxHeight: 56}}>
@@ -231,7 +166,7 @@ export const Dashboard: React.FC = () => {
           <div className="group bg-gradient-to-br from-purple-500 to-purple-600 rounded-3xl p-8 shadow-2xl shadow-purple-500/30 hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105 cursor-pointer">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100 text-sm font-medium mb-2">리포트 수</p>
+                <p className="text-purple-100 text-sm font-medium mb-2">AI 기업 리포트 수</p>
                 <ScoreboardNumber value={statsCounts.report ?? reports.length} className="text-5xl font-bold text-white" />
               </div>
               <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm" style={{maxWidth: 56, maxHeight: 56}}>
@@ -275,6 +210,23 @@ export const Dashboard: React.FC = () => {
             <div className="flex items-center mb-8">
               <h2 className="text-4xl font-bold text-gray-900 tracking-tight">최신 리포트</h2>
               <div className="ml-4 h-1 flex-1 bg-gradient-to-r from-purple-300 to-transparent rounded-full"></div>
+              <button
+                onClick={handleGenerateReport}
+                disabled={generatingReport}
+                className="ml-4 px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-200 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+              >
+                {generatingReport ? (
+                  <>
+                    <svg className="inline w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    생성 중...
+                  </>
+                ) : (
+                  '📊 최신 리포트 생성'
+                )}
+              </button>
             </div>
             <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 overflow-hidden border border-gray-100">
               <ReportsList reports={reports} />

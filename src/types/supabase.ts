@@ -68,7 +68,7 @@ export interface Database {
       reports: {
         Row: {
           id: string
-          contact_id: string
+          contact_id: string | null  // 조직 리포트의 경우 null
           type: string
           content: string
           created_at: string
@@ -76,7 +76,7 @@ export interface Database {
         }
         Insert: {
           id?: string
-          contact_id: string
+          contact_id?: string | null  // 조직 리포트의 경우 null
           type: string
           content: string
           created_at?: string
@@ -84,7 +84,7 @@ export interface Database {
         }
         Update: {
           id?: string
-          contact_id?: string
+          contact_id?: string | null
           type?: string
           content?: string
           created_at?: string
@@ -208,6 +208,55 @@ export interface Database {
           userId?: string
           read?: boolean
           created_at?: string
+        }
+      }
+      report_organizations: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          type: 'company' | 'government' | 'university'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          type: 'company' | 'government' | 'university'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          type?: 'company' | 'government' | 'university'
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      report_prompt_settings: {
+        Row: {
+          id: string
+          user_id: string
+          prompt_template: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          prompt_template: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          prompt_template?: string
+          created_at?: string
+          updated_at?: string
         }
       }
     }

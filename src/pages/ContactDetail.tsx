@@ -7,7 +7,7 @@ import SmalltalkService from '../services/smalltalk.service'
 type Contact = Database['public']['Tables']['contacts']['Row']
 type SmalltalkCache = Database['public']['Tables']['smalltalk_cache']['Row']
 import SmalltalkPanel from '../components/contact/SmalltalkPanel'
-import { CallRecorder } from '../components/CallRecorder'
+import MeetingSection from './MeetingSection'
 
 const smalltalkService = new SmalltalkService()
 
@@ -22,6 +22,9 @@ export const ContactDetail: React.FC = () => {
   const [interestsValue, setInterestsValue] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isEditingContact, setIsEditingContact] = useState(false)
+  const [editFormData, setEditFormData] = useState<Partial<Contact>>({})
+  const [isSaving, setIsSaving] = useState(false)
 
   const loadSmalltalks = async (contactId: string) => {
     setStLoading(true)
@@ -80,6 +83,17 @@ export const ContactDetail: React.FC = () => {
       if (error) console.error(error)
       setContact(data ?? null)
       setInterestsValue(data?.interests ?? '')
+      setEditFormData({
+        name: data?.name,
+        company: data?.company,
+        position: data?.position,
+        mobile: data?.mobile,
+        office_phone: data?.office_phone,
+        fax: data?.fax,
+        email: data?.email,
+        address: data?.address,
+        interests: data?.interests,
+      })
       setLoading(false)
     })()
   }, [id])
@@ -105,6 +119,66 @@ export const ContactDetail: React.FC = () => {
       setIsEditingInterests(false)
       alert('관심사가 저장되었습니다!')
     }
+  }
+
+  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setEditFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSaveContact = async () => {
+    if (!contact?.id) return
+    
+    if (!editFormData.name || !editFormData.company) {
+      alert('이름과 회사명은 필수 입력 항목입니다.')
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      const { error } = await supabase
+        .from('contacts')
+        .update({
+          name: editFormData.name,
+          company: editFormData.company,
+          position: editFormData.position,
+          mobile: editFormData.mobile,
+          office_phone: editFormData.office_phone,
+          fax: editFormData.fax,
+          email: editFormData.email,
+          address: editFormData.address,
+          interests: editFormData.interests,
+        })
+        .eq('id', contact.id)
+
+      if (error) throw error
+
+      // 상태 업데이트
+      setContact({ ...contact, ...editFormData } as Contact)
+      setInterestsValue(editFormData.interests ?? '')
+      setIsEditingContact(false)
+      alert('✅ 연락처 정보가 저장되었습니다.')
+    } catch (error) {
+      console.error('저장 오류:', error)
+      alert(error instanceof Error ? error.message : '연락처 저장에 실패했습니다.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditFormData({
+      name: contact?.name,
+      company: contact?.company,
+      position: contact?.position,
+      mobile: contact?.mobile,
+      office_phone: contact?.office_phone,
+      fax: contact?.fax,
+      email: contact?.email,
+      address: contact?.address,
+      interests: contact?.interests,
+    })
+    setIsEditingContact(false)
   }
 
   const handleGenerateSmalltalks = async () => {
@@ -167,63 +241,225 @@ export const ContactDetail: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-4">
-        <Link to="/" className="text-blue-600">← 대시보드로 돌아가기</Link>
-        <button
-          onClick={handleDeleteContact}
-          disabled={isDeleting}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            isDeleting
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-red-600 text-white hover:bg-red-700'
-          }`}
-        >
-          {isDeleting ? '삭제 중...' : '🗑️ 연락처 삭제'}
-        </button>
+        <Link to="/" className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors">
+          ← 대시보드로 돌아가기
+        </Link>
+        <div className="flex gap-2">
+          {!isEditingContact && (
+            <button
+              onClick={() => setIsEditingContact(true)}
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            >
+              ✏️ 연락처 편집
+            </button>
+          )}
+          <button
+            onClick={handleDeleteContact}
+            disabled={isDeleting}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              isDeleting
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-red-600 text-white hover:bg-red-700'
+            }`}
+          >
+            {isDeleting ? '삭제 중...' : '🗑️ 연락처 삭제'}
+          </button>
+        </div>
       </div>
       <div className="bg-white rounded-lg shadow p-6 mt-4">
-        <h2 className="text-2xl font-bold mb-2">{contact.name}</h2>
-        <p className="text-gray-600 mb-1">{contact.company} — {contact.position}</p>
-        {contact.mobile && (
-          <p className="mb-1">휴대폰: <a href={`tel:${contact.mobile}`} className="text-blue-600">{contact.mobile}</a></p>
-        )}
-        {contact.office_phone && (
-          <p className="mb-1">사무실 전화: <a href={`tel:${contact.office_phone}`} className="text-blue-600">{contact.office_phone}</a></p>
-        )}
-        {contact.fax && (
-          <p className="mb-1">팩스: {contact.fax}</p>
-        )}
-        <p className="mb-1">이메일: {contact.email}</p>
-        <p className="mb-1">주소: {contact.address}</p>
-        
-        {/* 명함 이미지 */}
-        {contact.business_card_image_url && (
-          <div className="mt-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">명함 이미지</h3>
-            <img
-              src={contact.business_card_image_url}
-              alt="명함"
-              className="max-w-md rounded-lg border border-gray-200 shadow-sm"
-            />
-          </div>
-        )}
-        
-        {/* 관심사 편집 */}
-        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-gray-700">관심사</h3>
-            {!isEditingInterests && (
+        {isEditingContact ? (
+          /* 편집 모드 */
+          <div>
+            <h2 className="text-xl font-bold mb-4">연락처 정보 편집</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  이름 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={editFormData.name || ''}
+                  onChange={handleEditInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  회사명 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="company"
+                  value={editFormData.company || ''}
+                  onChange={handleEditInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  직책
+                </label>
+                <input
+                  type="text"
+                  name="position"
+                  value={editFormData.position || ''}
+                  onChange={handleEditInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  휴대폰
+                </label>
+                <input
+                  type="tel"
+                  name="mobile"
+                  value={editFormData.mobile || ''}
+                  onChange={handleEditInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  사무실 전화
+                </label>
+                <input
+                  type="tel"
+                  name="office_phone"
+                  value={editFormData.office_phone || ''}
+                  onChange={handleEditInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  팩스
+                </label>
+                <input
+                  type="tel"
+                  name="fax"
+                  value={editFormData.fax || ''}
+                  onChange={handleEditInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  이메일
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={editFormData.email || ''}
+                  onChange={handleEditInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  주소
+                </label>
+                <textarea
+                  name="address"
+                  value={editFormData.address || ''}
+                  onChange={handleEditInputChange}
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  관심사
+                </label>
+                <textarea
+                  name="interests"
+                  value={editFormData.interests || ''}
+                  onChange={handleEditInputChange}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="예: 골프, 와인, IT 트렌드, 독서"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex gap-3">
               <button
-                onClick={() => setIsEditingInterests(true)}
-                className="text-xs text-blue-600 hover:text-blue-700"
+                onClick={handleSaveContact}
+                disabled={isSaving}
+                className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
+                  isSaving
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
               >
-                편집
+                {isSaving ? '저장 중...' : '💾 저장'}
               </button>
-            )}
+              <button
+                onClick={handleCancelEdit}
+                disabled={isSaving}
+                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+              >
+                취소
+              </button>
+            </div>
           </div>
-          {isEditingInterests ? (
-            <div className="space-y-2">
-              <textarea
-                value={interestsValue}
+        ) : (
+          /* 보기 모드 */
+          <>
+            <h2 className="text-2xl font-bold mb-2">{contact.name}</h2>
+            <p className="text-gray-600 mb-1">{contact.company} — {contact.position}</p>
+            {contact.mobile && (
+              <p className="mb-1">휴대폰: <a href={`tel:${contact.mobile}`} className="text-blue-600">{contact.mobile}</a></p>
+            )}
+            {contact.office_phone && (
+              <p className="mb-1">사무실 전화: <a href={`tel:${contact.office_phone}`} className="text-blue-600">{contact.office_phone}</a></p>
+            )}
+            {contact.fax && (
+              <p className="mb-1">팩스: {contact.fax}</p>
+            )}
+            <p className="mb-1">이메일: {contact.email}</p>
+            <p className="mb-1">주소: {contact.address}</p>
+            
+            {/* 명함 이미지 */}
+            {contact.business_card_image_url && (
+              <div className="mt-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">명함 이미지</h3>
+                <img
+                  src={contact.business_card_image_url}
+                  alt="명함"
+                  className="max-w-md rounded-lg border border-gray-200 shadow-sm"
+                />
+              </div>
+            )}
+            
+            {/* 관심사 편집 */}
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold text-gray-700">관심사</h3>
+                {!isEditingInterests && (
+                  <button
+                    onClick={() => setIsEditingInterests(true)}
+                    className="text-xs text-blue-600 hover:text-blue-700"
+                  >
+                    편집
+                  </button>
+                )}
+              </div>
+              {isEditingInterests ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={interestsValue}
                 onChange={(e) => setInterestsValue(e.target.value)}
                 placeholder="예: 골프, 와인, IT 트렌드, 독서"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
@@ -254,16 +490,10 @@ export const ContactDetail: React.FC = () => {
           )}
         </div>
 
-        <p className="text-sm text-gray-500 mt-4">마지막 연락: {contact.last_contact}</p>
-        {/* 통화 녹음 및 AI 요약 → Smalltalk 생성 */}
-        <div className="mt-4">
-          <CallRecorder
-            contactId={contact.id}
-            onRecordingComplete={async () => {
-              if (contact?.id) await loadSmalltalks(contact.id)
-            }}
-          />
-        </div>
+        {/* 미팅 기록 및 메모 */}
+        <MeetingSection contactId={contact.id} lastContact={contact.last_contact} onMeetingAdded={(date: string) => setContact({ ...contact, last_contact: date })} />
+          </>
+        )}
       </div>
 
       {/* Smalltalk Section */}
