@@ -16,6 +16,9 @@ export interface Database {
           company: string
           position: string | null
           phone: string | null
+          mobile: string | null
+          office_phone: string | null
+          fax: string | null
           phone_link: string | null
           email: string | null
           address: string | null
@@ -23,6 +26,7 @@ export interface Database {
           last_contact: string | null
           user_id: string
           interests: string | null
+          business_card_image_url: string | null
         }
         Insert: {
           id?: string
@@ -30,6 +34,9 @@ export interface Database {
           company: string
           position?: string | null
           phone?: string | null
+          mobile?: string | null
+          office_phone?: string | null
+          fax?: string | null
           phone_link?: string | null
           email?: string | null
           address?: string | null
@@ -37,6 +44,7 @@ export interface Database {
           last_contact?: string | null
           user_id: string
           interests?: string | null
+          business_card_image_url?: string | null
         }
         Update: {
           id?: string
@@ -44,6 +52,9 @@ export interface Database {
           company?: string
           position?: string | null
           phone?: string | null
+          mobile?: string | null
+          office_phone?: string | null
+          fax?: string | null
           phone_link?: string | null
           email?: string | null
           address?: string | null
@@ -51,6 +62,7 @@ export interface Database {
           last_contact?: string | null
           user_id?: string
           interests?: string | null
+          business_card_image_url?: string | null
         }
       }
       reports: {

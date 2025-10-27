@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>인증 상태 확인</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Supabase 인증 상태 확인</h1>
+    <div id="result"></div>
+    
+    <script>
+        const supabaseUrl = 'https://jvadwfxkkhcmndluxyzk.supabase.co'
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2YWR3Znhra2hjbW5kbHV4eXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEzMTE5ODIsImV4cCI6MjA3Njg4Nzk4Mn0.D3Qy0FKqQsxrluu0KGLvc4ZTjmrc73s1wmv8kckFZOk'
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
+        
+        async function checkAuth() {
+            const resultDiv = document.getElementById('result')
+            
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession()
+                
+                if (error) {
+                    resultDiv.innerHTML = `<pre style="color: red;">❌ 에러: ${JSON.stringify(error, null, 2)}</pre>`
+                    return
+                }
+                
+                if (!session) {
+                    resultDiv.innerHTML = `<pre style="color: orange;">⚠️ 로그인되지 않음</pre>`
+                    return
+                }
+                
+                resultDiv.innerHTML = `
+                    <pre style="color: green;">✅ 로그인 상태
+                    
+User ID: ${session.user.id}
+Email: ${session.user.email}
+Token (앞 50자): ${session.access_token.substring(0, 50)}...
+Token 만료: ${new Date(session.expires_at * 1000).toLocaleString('ko-KR')}
+                    </pre>
+                `
+            } catch (err) {
+                resultDiv.innerHTML = `<pre style="color: red;">❌ 예외: ${err.message}</pre>`
+            }
+        }
+        
+        checkAuth()
+    </script>
+</body>
+</html>

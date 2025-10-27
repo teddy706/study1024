@@ -7,6 +7,7 @@ import { Dashboard } from './pages/Dashboard'
 import ContactDetail from './pages/ContactDetail'
 import ReportDetail from './pages/ReportDetail'
 import ContactsPage from './pages/Contacts'
+import AddContact from './pages/AddContact'
 import { Login } from './pages/Login'
 import ProtectedRoute from './components/ProtectedRoute'
 import './index.css'
@@ -15,7 +16,7 @@ function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <BrowserRouter basename="/study1024">
+        <BrowserRouter>
           <Routes>
             {/* 로그인 페이지 (인증 불필요) */}
             <Route path="/login" element={<Login />} />
@@ -34,6 +35,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ContactsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/contacts/new" 
+              element={
+                <ProtectedRoute>
+                  <AddContact />
                 </ProtectedRoute>
               } 
             />

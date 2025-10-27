@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
 import type { Database } from '../types/supabase'
 import SmalltalkService from '../services/smalltalk.service'
@@ -13,6 +13,7 @@ const smalltalkService = new SmalltalkService()
 
 export const ContactDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const [contact, setContact] = useState<Contact | null>(null)
   const [loading, setLoading] = useState(true)
   const [smalltalks, setSmalltalks] = useState<SmalltalkCache[]>([])
@@ -20,6 +21,7 @@ export const ContactDetail: React.FC = () => {
   const [isEditingInterests, setIsEditingInterests] = useState(false)
   const [interestsValue, setInterestsValue] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const loadSmalltalks = async (contactId: string) => {
     setStLoading(true)
@@ -121,18 +123,89 @@ export const ContactDetail: React.FC = () => {
     }
   }
 
+  const handleDeleteContact = async () => {
+    if (!contact?.id) return
+    
+    const confirmed = window.confirm(
+      `정말로 "${contact.name}" 연락처를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`
+    )
+    
+    if (!confirmed) return
+    
+    setIsDeleting(true)
+    try {
+      // 명함 이미지가 있다면 Storage에서도 삭제
+      if (contact.business_card_image_url) {
+        const imageUrl = contact.business_card_image_url
+        const fileName = imageUrl.split('/business-cards/')[1]
+        if (fileName) {
+          await supabase.storage.from('business-cards').remove([fileName])
+        }
+      }
+
+      // 연락처 삭제
+      const { error } = await supabase
+        .from('contacts')
+        .delete()
+        .eq('id', contact.id)
+
+      if (error) throw error
+
+      alert('✅ 연락처가 삭제되었습니다.')
+      navigate('/')
+    } catch (error) {
+      console.error('연락처 삭제 실패:', error)
+      alert('❌ 연락처 삭제에 실패했습니다.')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>
   if (!contact) return <div className="p-8">연락처를 찾을 수 없습니다. <Link to="/">돌아가기</Link></div>
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <Link to="/" className="text-blue-600">← 대시보드로 돌아가기</Link>
+      <div className="flex items-center justify-between mb-4">
+        <Link to="/" className="text-blue-600">← 대시보드로 돌아가기</Link>
+        <button
+          onClick={handleDeleteContact}
+          disabled={isDeleting}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            isDeleting
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              : 'bg-red-600 text-white hover:bg-red-700'
+          }`}
+        >
+          {isDeleting ? '삭제 중...' : '🗑️ 연락처 삭제'}
+        </button>
+      </div>
       <div className="bg-white rounded-lg shadow p-6 mt-4">
         <h2 className="text-2xl font-bold mb-2">{contact.name}</h2>
         <p className="text-gray-600 mb-1">{contact.company} — {contact.position}</p>
-        <p className="mb-1">전화: <a href={`tel:${contact.phone}`} className="text-blue-600">{contact.phone}</a></p>
+        {contact.mobile && (
+          <p className="mb-1">휴대폰: <a href={`tel:${contact.mobile}`} className="text-blue-600">{contact.mobile}</a></p>
+        )}
+        {contact.office_phone && (
+          <p className="mb-1">사무실 전화: <a href={`tel:${contact.office_phone}`} className="text-blue-600">{contact.office_phone}</a></p>
+        )}
+        {contact.fax && (
+          <p className="mb-1">팩스: {contact.fax}</p>
+        )}
         <p className="mb-1">이메일: {contact.email}</p>
         <p className="mb-1">주소: {contact.address}</p>
+        
+        {/* 명함 이미지 */}
+        {contact.business_card_image_url && (
+          <div className="mt-4">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">명함 이미지</h3>
+            <img
+              src={contact.business_card_image_url}
+              alt="명함"
+              className="max-w-md rounded-lg border border-gray-200 shadow-sm"
+            />
+          </div>
+        )}
         
         {/* 관심사 편집 */}
         <div className="mt-4 p-4 bg-gray-50 rounded-lg">

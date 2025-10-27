@@ -1,7 +1,21 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../hooks/useAuth'
+import { supabase } from '../../config/supabase'
 
 export const Navbar: React.FC = () => {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut()
+      navigate('/login')
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+  }
+
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 shadow-sm">
       <div className="container mx-auto px-6 py-4 flex items-center justify-between">
@@ -19,9 +33,23 @@ export const Navbar: React.FC = () => {
           <Link className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors duration-200" to="/">
             대시보드
           </Link>
-          <Link className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors duration-200" to="/login">
-            로그인
-          </Link>
+          {user ? (
+            <>
+              <span className="text-sm text-gray-600">
+                {user.email}
+              </span>
+              <button
+                onClick={handleLogout}
+                className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors duration-200"
+              >
+                로그아웃
+              </button>
+            </>
+          ) : (
+            <Link className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors duration-200" to="/login">
+              로그인
+            </Link>
+          )}
         </nav>
       </div>
     </header>
