@@ -1,91 +1,34 @@
 import { supabase } from '../../utils/supabase'
 import type { Call } from '../../utils/supabase'
-import { OpenAI } from 'openai'
-import SmalltalkService from '../smalltalk.service'
 
 export class WhisperService {
-  private openai: any | null = null
-
   constructor() {}
-
-  private getOpenAI() {
-    if (!this.openai) {
-      // 주의: 데모 용도로만 브라우저에서 직접 호출 허용. 실제 서비스에선 서버/엣지에서 프록시하세요.
-      this.openai = new OpenAI({ apiKey: import.meta.env.VITE_OPENAI_API_KEY, dangerouslyAllowBrowser: true })
-    }
-    return this.openai
-  }
-
-  async transcribeAudio(audioFile: File): Promise<string> {
-    const formData = new FormData()
-    formData.append('file', audioFile)
-    formData.append('model', 'whisper-1')
-
-    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`
-      },
-      body: formData
-    })
-
-    const data = await response.json()
-    return data.text
-  }
-
-  async summarizeTranscription(transcription: string): Promise<string> {
-  const completion = await this.getOpenAI().chat.completions.create({
-      messages: [
-        {
-          role: 'system',
-          content: '통화 내용을 요약하고 주요 액션 아이템을 추출해주세요.'
-        },
-        {
-          role: 'user',
-          content: transcription
-        }
-      ],
-      model: 'gpt-4-mini'
-    })
-
-    return completion.choices[0].message.content
-  }
 
   async processCall(audioFile: File, contactId: string): Promise<Call> {
     try {
-      // 1. 오디오 파일을 텍스트로 변환
-      const transcription = await this.transcribeAudio(audioFile)
-      
-      // 2. 텍스트 요약
-      const summary = await this.summarizeTranscription(transcription)
+      // Edge Function으로 파일 업로드 + 처리 위임
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-call`
+      const formData = new FormData()
+      formData.append('file', audioFile)
+      formData.append('contactId', contactId)
 
-      // 3. 통화 기록 저장
-      const call = {
-        contact_id: contactId,
-        recording_url: '', // 보안상의 이유로 실제 녹음 파일은 저장하지 않음
-        summary,
-        duration: 0, // 실제 구현시 오디오 파일 길이 계산
-        called_at: new Date().toISOString()
+      const anonKey = import.meta.env.VITE_SUPABASE_KEY
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          apikey: anonKey,
+          Authorization: `Bearer ${anonKey}`,
+        },
+        body: formData,
+      })
+
+      if (!res.ok) {
+        const errText = await res.text()
+        throw new Error(`process-call failed: ${res.status} ${errText}`)
       }
 
-      const { data, error } = await supabase
-        .from('calls')
-        .insert(call)
-        .select()
-        .single()
-
-      if (error) throw error
-      // 4. 스몰토크 생성 및 저장 (best-effort)
-      try {
-        const st = new SmalltalkService()
-        const inserted = await st.generateFromSummary(summary, contactId)
-        console.log(`Smalltalk generated: ${inserted}`)
-      } catch (e) {
-        console.warn('Smalltalk generation failed:', e)
-      }
-
-      return data
-
+      const json = await res.json()
+      return json.call as Call
     } catch (error) {
       console.error('Error processing call:', error)
       throw error

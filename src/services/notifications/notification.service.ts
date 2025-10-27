@@ -16,12 +16,10 @@ class NotificationService {
     console.log(`Sending email to ${email}: ${subject}`)
   }
 
-  private async sendSlackMessage(channel: string, message: string) {
-    // 실제 구현에서는 Slack API 사용
-    const slackWebhook = import.meta.env.VITE_SLACK_WEBHOOK_URL
-    await fetch(slackWebhook, {
-      method: 'POST',
-      body: JSON.stringify({ text: message })
+  private async sendSlackMessage(_channel: string, message: string) {
+    // Edge Function으로 위임 (채널은 웹훅 특성상 서버 설정값 사용)
+    await supabase.functions.invoke('send-slack', {
+      body: { text: message },
     })
   }
 
