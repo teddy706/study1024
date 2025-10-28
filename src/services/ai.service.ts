@@ -1,5 +1,5 @@
 // AI 리포트 생성 서비스
-// OpenAI API를 사용하여 조직 동향 리포트 생성
+// OpenAI API를 사용하여 기업동향 리포트 생성
 
 export class AIService {
   private apiKey: string
@@ -69,7 +69,7 @@ export class AIService {
   }
 
   /**
-   * 조직 동향 리포트 생성
+   * 기업동향 리포트 생성
    * @param prompt 리포트 생성 프롬프트
    * @returns 생성된 리포트 텍스트
    */

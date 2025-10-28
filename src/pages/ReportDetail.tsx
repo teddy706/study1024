@@ -87,7 +87,7 @@ export const ReportDetail: React.FC = () => {
                 </svg>
               </div>
               <div>
-                <h1 className="text-2xl font-bold">{report.type || '조직 동향 리포트'}</h1>
+                <h1 className="text-2xl font-bold">{report.type || '기업동향 리포트'}</h1>
                 <p className="text-purple-100 text-sm">
                   작성일: {new Date(report.created_at).toLocaleDateString('ko-KR', {
                     year: 'numeric',

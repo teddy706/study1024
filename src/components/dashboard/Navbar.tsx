@@ -25,7 +25,7 @@ export const Navbar: React.FC = () => {
           <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity duration-200">
             <img 
               src="/logo.png" 
-              alt="My Talktailor Logo" 
+              alt="Salestailor Logo" 
               className="w-8 h-8 sm:w-10 sm:h-10 object-contain rounded-full"
               onError={(e) => {
                 console.error('Logo image failed to load');
@@ -43,7 +43,7 @@ export const Navbar: React.FC = () => {
               <span className="text-white font-bold text-xs sm:text-sm">🗣️</span>
             </div>
             <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-              My Talktailor
+              Salestailor
             </h1>
           </Link>
 

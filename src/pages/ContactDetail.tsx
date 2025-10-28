@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
 import type { Database } from '../types/supabase'
 import SmalltalkService from '../services/smalltalk.service'
+import { generateVCF, downloadVCF, sendVCFByEmail, shareVCF } from '../utils/vcf.utils'
 
 type Contact = Database['public']['Tables']['contacts']['Row']
 type SmalltalkCache = Database['public']['Tables']['smalltalk_cache']['Row']
@@ -79,21 +80,25 @@ export const ContactDetail: React.FC = () => {
     if (!id) return
     (async () => {
       setLoading(true)
-      const { data, error } = await supabase.from('contacts').select('*').eq('id', id).single()
-      if (error) console.error(error)
-      setContact(data ?? null)
-      setInterestsValue(data?.interests ?? '')
-      setEditFormData({
-        name: data?.name,
-        company: data?.company,
-        position: data?.position,
-        mobile: data?.mobile,
-        office_phone: data?.office_phone,
-        fax: data?.fax,
-        email: data?.email,
-        address: data?.address,
-        interests: data?.interests,
-      })
+      const { data, error } = await supabase.from('contacts').select('*').eq('id', id).single() as { data: Contact | null, error: any }
+      if (error) {
+        console.error(error)
+        setContact(null)
+      } else if (data) {
+        setContact(data)
+        setInterestsValue(data.interests ?? '')
+        setEditFormData({
+          name: data.name,
+          company: data.company,
+          position: data.position,
+          mobile: data.mobile,
+          office_phone: data.office_phone,
+          fax: data.fax,
+          email: data.email,
+          address: data.address,
+          interests: data.interests,
+        })
+      }
       setLoading(false)
     })()
   }, [id])
@@ -106,8 +111,8 @@ export const ContactDetail: React.FC = () => {
 
   const handleSaveInterests = async () => {
     if (!contact?.id) return
-    const { error } = await supabase
-      .from('contacts')
+    const { error } = await (supabase
+      .from('contacts') as any)
       .update({ interests: interestsValue })
       .eq('id', contact.id)
     
@@ -136,8 +141,8 @@ export const ContactDetail: React.FC = () => {
 
     setIsSaving(true)
     try {
-      const { error } = await supabase
-        .from('contacts')
+      const { error } = await (supabase
+        .from('contacts') as any)
         .update({
           name: editFormData.name,
           company: editFormData.company,
@@ -194,6 +199,29 @@ export const ContactDetail: React.FC = () => {
       alert('❌ 스몰토크 생성에 실패했습니다.')
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  const handleDownloadVCF = () => {
+    if (!contact) return
+    downloadVCF(contact)
+  }
+
+  const handleEmailVCF = () => {
+    if (!contact) return
+    const recipientEmail = prompt('받는 사람의 이메일 주소를 입력하세요:', '')
+    if (recipientEmail !== null) {
+      sendVCFByEmail(contact, recipientEmail)
+    }
+  }
+
+  const handleShareVCF = async () => {
+    if (!contact) return
+    try {
+      await shareVCF(contact)
+    } catch (error) {
+      console.error('VCF 공유 실패:', error)
+      alert('VCF 공유에 실패했습니다.')
     }
   }
 
@@ -481,6 +509,34 @@ export const ContactDetail: React.FC = () => {
             </p>
           )}
         </div>
+
+            {/* VCF 내보내기 */}
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">연락처 공유</h3>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={handleDownloadVCF}
+                  className="px-3 py-2 bg-green-600 text-white text-xs rounded-md hover:bg-green-700 transition-colors flex items-center gap-1"
+                >
+                  📥 VCF 다운로드
+                </button>
+                <button
+                  onClick={handleEmailVCF}
+                  className="px-3 py-2 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors flex items-center gap-1"
+                >
+                  📧 이메일로 전송
+                </button>
+                <button
+                  onClick={handleShareVCF}
+                  className="px-3 py-2 bg-purple-600 text-white text-xs rounded-md hover:bg-purple-700 transition-colors flex items-center gap-1"
+                >
+                  🔗 공유하기
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                VCF 파일을 통해 연락처 정보를 다른 기기나 주소록 앱으로 쉽게 가져올 수 있습니다.
+              </p>
+            </div>
 
             {/* 미팅 기록 및 메모 */}
             <MeetingSection contactId={contact.id} lastContact={contact.last_contact} onMeetingAdded={(date: string) => setContact({ ...contact, last_contact: date })} />

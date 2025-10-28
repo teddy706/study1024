@@ -230,7 +230,7 @@ export const Dashboard: React.FC = () => {
       // 리포트 저장
       await reportService.saveReport(reportContent)
       
-      alert('✅ 조직 동향 리포트가 성공적으로 생성되었습니다!')
+      alert('✅ 기업동향 리포트가 성공적으로 생성되었습니다!')
       loadDashboardData() // 리포트 목록 새로고침
       
       // 리포트 탭에 있을 때는 전체 리포트도 새로고침

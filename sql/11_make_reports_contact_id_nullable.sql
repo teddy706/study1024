@@ -17,4 +17,4 @@ ALTER TABLE public.reports
 
 -- 조직 리포트 타입 추가를 위한 코멘트
 COMMENT ON COLUMN public.reports.contact_id IS '연락처 ID (조직 리포트의 경우 NULL)';
-COMMENT ON COLUMN public.reports.type IS '리포트 타입: organization_trends (조직 동향), call_summary (통화 요약) 등';
+COMMENT ON COLUMN public.reports.type IS '리포트 타입: organization_trends (기업동향 리포트), call_summary (통화 요약) 등';
