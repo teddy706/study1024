@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../config/supabase'
 import type { Database } from '../types/supabase'
 import { useAuth } from '../hooks/useAuth'
@@ -30,6 +31,10 @@ export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [generatingReport, setGeneratingReport] = useState(false)
   const [activeTab, setActiveTab] = useState<'all' | 'contacts' | 'reports' | 'actions'>('all')
+  
+  // 연락처 필터링 및 정렬 상태
+  const [contactFilter, setContactFilter] = useState<string>('all')
+  const [contactSort, setContactSort] = useState<'name' | 'company' | 'recent'>('name')
 
   useEffect(() => {
     loadDashboardData()
@@ -119,6 +124,38 @@ export const Dashboard: React.FC = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  // 연락처 필터링 및 정렬 함수
+  const getFilteredAndSortedContacts = () => {
+    let filteredContacts = contacts
+
+    // 기업 필터링
+    if (contactFilter !== 'all') {
+      filteredContacts = contacts.filter(contact => contact.company === contactFilter)
+    }
+
+    // 정렬
+    filteredContacts.sort((a, b) => {
+      switch (contactSort) {
+        case 'name':
+          return a.name.localeCompare(b.name)
+        case 'company':
+          return (a.company || '').localeCompare(b.company || '')
+        case 'recent':
+          return new Date(b.last_contact || b.created_at).getTime() - new Date(a.last_contact || a.created_at).getTime()
+        default:
+          return 0
+      }
+    })
+
+    return filteredContacts
+  }
+
+  // 기업 목록 추출
+  const getCompanyList = () => {
+    const companies = contacts.map(contact => contact.company).filter(Boolean)
+    return [...new Set(companies)].sort()
   }
 
   const handleGenerateReport = async () => {
