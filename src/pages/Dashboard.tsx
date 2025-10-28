@@ -582,9 +582,95 @@ export const Dashboard: React.FC = () => {
               <div className="flex items-center mb-6 sm:mb-8">
                 <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight">예정된 일정</h2>
                 <div className="ml-4 h-1 flex-1 bg-gradient-to-r from-green-300 to-transparent rounded-full"></div>
+                <span className="text-sm text-gray-500">
+                  총 {actions.length}개
+                </span>
               </div>
               <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl shadow-gray-200/50 overflow-hidden border border-gray-100">
-                <ActionsList actions={actions} itemsPerPage={10} />
+                {actions.length > 0 ? (
+                  <div className="p-6">
+                    <div className="space-y-3">
+                      {actions.map((action, index) => (
+                        <div 
+                          key={action.id} 
+                          className="flex items-center space-x-4 p-4 hover:bg-gray-50 rounded-lg transition-colors border border-gray-100 mb-2"
+                        >
+                          {/* 상태 선택 드롭다운 */}
+                          <div className="flex-shrink-0">
+                            <select 
+                              className="text-xs px-2 py-1 rounded-full border-0 focus:ring-2 focus:ring-blue-500"
+                              defaultValue="예정"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <option value="완료" className="bg-green-50 text-green-700">완료</option>
+                              <option value="진행중" className="bg-yellow-50 text-yellow-700">진행중</option>
+                              <option value="예정" className="bg-blue-50 text-blue-700">예정</option>
+                            </select>
+                          </div>
+                          
+                          {/* 일정 상세 정보 */}
+                          <div 
+                            className="flex-1 min-w-0 cursor-pointer"
+                            onClick={() => {
+                              if (action.contact_id) {
+                                window.location.href = `/contacts/${action.contact_id}`
+                              }
+                            }}
+                          >
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-center">
+                              {/* 이름 */}
+                              <div className="sm:col-span-1">
+                                <span className="text-sm font-semibold text-gray-900">
+                                  {action.contacts?.name || '연락처 없음'}
+                                </span>
+                              </div>
+                              
+                              {/* 기업 */}
+                              <div className="sm:col-span-1">
+                                <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
+                                  {action.contacts?.company || '기업 정보 없음'}
+                                </span>
+                              </div>
+                              
+                              {/* 제목 */}
+                              <div className="sm:col-span-1">
+                                <span className="text-sm text-gray-800 font-medium truncate">
+                                  {action.description || '제목 없음'}
+                                </span>
+                              </div>
+                              
+                              {/* 날짜 */}
+                              <div className="sm:col-span-1 text-right">
+                                <span className="text-xs text-gray-500">
+                                  {action.due_date ? new Date(action.due_date).toLocaleDateString('ko-KR', { 
+                                    month: 'short', 
+                                    day: 'numeric',
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                  }) : '날짜 미정'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* 화살표 아이콘 */}
+                          <div className="flex-shrink-0">
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-8 text-center text-gray-500">
+                    <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-sm">예정된 일정이 없습니다</p>
+                  </div>
+                )}
               </div>
             </div>
           </section>
