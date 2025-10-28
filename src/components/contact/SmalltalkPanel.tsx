@@ -30,7 +30,7 @@ const getSourceLabel = (meta?: any): { label: string; color: string; icon?: stri
   return { label: '', color: '' }
 }
 
-export const SmalltalkPanel: React.FC<Props> = ({ items, itemsPerPage = 5 }) => {
+export const SmalltalkPanel: React.FC<Props> = ({ items, itemsPerPage = 3 }) => {
   const [currentPage, setCurrentPage] = useState(1)
 
   const paginatedData = useMemo(() => {

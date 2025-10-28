@@ -73,8 +73,20 @@ serve(async (req) => {
       .order('action_date', { ascending: false })
       .limit(5)
 
+    // 디버깅: 관심사 정보 로그 출력
+    console.log('📋 Contact interests check:', {
+      contactId,
+      name: contact.name,
+      interests: contact.interests,
+      interestsType: typeof contact.interests,
+      interestsLength: contact.interests?.length || 0
+    })
+
     // AI 프롬프트 구성 (prompts.ts에서 가져옴)
     const prompt = buildUserPrompt(contact, recentCalls, recentActions, recommendedProducts)
+    
+    // 디버깅: 생성된 프롬프트에서 관심사 부분 확인
+    console.log('🎯 Prompt interests section:', prompt.includes('MANDATORY Personal Interests') ? '✅ 포함됨' : '❌ 누락됨')
 
     let items: any[] = []
     try {

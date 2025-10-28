@@ -42,7 +42,7 @@ export const ContactDetail: React.FC = () => {
         .select('*')
         .eq('contact_id', contactId)
         .gt('expires_at', nowIso)
-        .order('expires_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(50)
 
       // 명시적으로 user_id 일치 (RLS와 일관성)
@@ -266,11 +266,13 @@ export const ContactDetail: React.FC = () => {
           </button>
         </div>
       </div>
-      <div className="bg-white rounded-lg shadow p-6 mt-4">
-        {isEditingContact ? (
-          /* 편집 모드 */
-          <div>
-            <h2 className="text-xl font-bold mb-4">연락처 정보 편집</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4">
+        {/* 연락처 정보 (2/3 너비) */}
+        <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
+          {isEditingContact ? (
+            /* 편집 모드 */
+            <div>
+              <h2 className="text-xl font-bold mb-4">연락처 정보 편집</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -480,51 +482,74 @@ export const ContactDetail: React.FC = () => {
           )}
         </div>
 
-        {/* 미팅 기록 및 메모 */}
-        <MeetingSection contactId={contact.id} lastContact={contact.last_contact} onMeetingAdded={(date: string) => setContact({ ...contact, last_contact: date })} />
+            {/* 미팅 기록 및 메모 */}
+            <MeetingSection contactId={contact.id} lastContact={contact.last_contact} onMeetingAdded={(date: string) => setContact({ ...contact, last_contact: date })} />
           </>
-        )}
-      </div>
+          )}
+        </div>
 
-      {/* Smalltalk Section */}
-      <div className="mt-6">
-        {stLoading ? (
-          <div className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-24 mb-4" />
-            <div className="space-y-3">
-              <div className="h-14 bg-gray-100 rounded-xl" />
-              <div className="h-14 bg-gray-100 rounded-xl" />
-            </div>
-          </div>
-        ) : (
-          <>
+        {/* 스몰토크 패널 (1/3 너비) */}
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-lg shadow p-4 sticky top-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">스몰토크 소재</h3>
+              <h3 className="text-lg font-semibold text-gray-900">스몰토크</h3>
               <button
                 onClick={handleGenerateSmalltalks}
                 disabled={isGenerating}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
                   isGenerating
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
               >
-                {isGenerating ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    생성 중...
-                  </span>
-                ) : (
-                  '🤖 AI 스몰토크 생성'
-                )}
+                {isGenerating ? '생성 중...' : '🤖 생성'}
               </button>
             </div>
-            <SmalltalkPanel items={smalltalks} />
-          </>
-        )}
+            
+            {stLoading ? (
+              <div className="space-y-3">
+                <div className="h-16 bg-gray-100 rounded-lg animate-pulse" />
+                <div className="h-16 bg-gray-100 rounded-lg animate-pulse" />
+                <div className="h-16 bg-gray-100 rounded-lg animate-pulse" />
+              </div>
+            ) : smalltalks.length > 0 ? (
+              <div className="space-y-3">
+                {smalltalks.slice(0, 3).map((smalltalk) => (
+                  <div 
+                    key={smalltalk.id} 
+                    className="p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-100"
+                  >
+                    <p className="text-sm text-gray-800 leading-relaxed">
+                      {smalltalk.content}
+                    </p>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                        관심사 기반
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {new Date(smalltalk.created_at).toLocaleDateString('ko-KR')}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="w-12 h-12 mx-auto mb-3 text-gray-300">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <p className="text-sm text-gray-500 mb-3">
+                  스몰토크가 없습니다
+                </p>
+                <p className="text-xs text-gray-400">
+                  관심사를 기반으로 대화 주제를 생성해보세요
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )
