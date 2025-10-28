@@ -1,4 +1,4 @@
-# Sales Assistant 📊
+# My Talktailor 📊
 
 영업 활동을 효율적으로 관리하는 스마트 세일즈 어시스턴트 애플리케이션입니다.
 

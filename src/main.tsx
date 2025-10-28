@@ -9,9 +9,16 @@ import ReportDetail from './pages/ReportDetail'
 import ContactsPage from './pages/Contacts'
 import AddContact from './pages/AddContact'
 import ReportSettings from './pages/ReportSettings'
+import ProductsPage from './pages/ProductsPage'
 import { Login } from './pages/Login'
 import ProtectedRoute from './components/ProtectedRoute'
+import { supabase } from './config/supabase'
 import './index.css'
+
+// 개발 환경에서 브라우저 콘솔에서 Supabase 클라이언트에 접근할 수 있도록 함
+if (import.meta.env.DEV) {
+  (window as any).supabase = supabase
+}
 
 function App() {
   return (
@@ -68,6 +75,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ReportSettings />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/products" 
+              element={
+                <ProtectedRoute>
+                  <ProductsPage />
                 </ProtectedRoute>
               } 
             />

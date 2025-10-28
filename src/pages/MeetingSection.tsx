@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { addMeeting, getMeetings } from '../services/meeting.service';
+import ScheduleService from '../services/schedule.service';
+import ActionsList from '../components/dashboard/ActionsList';
 import type { Meeting } from '../types/meeting';
+import type { Database } from '../types/supabase';
+
+type Action = Database['public']['Tables']['actions']['Row'];
 
 interface MeetingSectionProps {
   contactId: string;
@@ -18,6 +23,9 @@ const MeetingSection: React.FC<MeetingSectionProps> = ({ contactId, lastContact,
   const [memo, setMemo] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [actions, setActions] = useState<Action[]>([]);
+  const [actionsLoading, setActionsLoading] = useState(false);
+  const scheduleService = new ScheduleService();
 
   const loadMeetings = async (p = 1) => {
     setLoading(true);
@@ -32,8 +40,23 @@ const MeetingSection: React.FC<MeetingSectionProps> = ({ contactId, lastContact,
     }
   };
 
+  const loadActions = async () => {
+    setActionsLoading(true);
+    try {
+      console.log('🔄 MeetingSection: 일정 로딩 시작, contactId:', contactId);
+      const data = await scheduleService.getActions({ contactId, limit: 20 });
+      console.log('✅ MeetingSection: 일정 로딩 완료, 개수:', data.length);
+      setActions(data);
+    } catch (e) {
+      console.error('💥 MeetingSection: 일정 로딩 실패:', e);
+    } finally {
+      setActionsLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadMeetings(page);
+    loadActions();
     // eslint-disable-next-line
   }, [contactId, page]);
 
@@ -49,7 +72,7 @@ const MeetingSection: React.FC<MeetingSectionProps> = ({ contactId, lastContact,
       setShowModal(false);
       setPage(1);
       loadMeetings(1);
-      if (onMeetingAdded && meeting.met_at) onMeetingAdded(meeting.met_at);
+      if (onMeetingAdded && (meeting as any).met_at) onMeetingAdded((meeting as any).met_at);
     } catch (e) {
       alert('미팅 기록 저장에 실패했습니다.');
     } finally {
@@ -118,6 +141,33 @@ const MeetingSection: React.FC<MeetingSectionProps> = ({ contactId, lastContact,
           </div>
         </div>
       )}
+
+      {/* 일정 관리 섹션 */}
+      <div className="mt-8">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">📅 일정 관리</h3>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          {actionsLoading ? (
+            <div className="text-center py-8">
+              <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-green-600 border-r-transparent"></div>
+              <p className="mt-2 text-sm text-gray-500">일정을 불러오는 중...</p>
+            </div>
+          ) : (
+            <>
+              {console.log('🎯 MeetingSection: ActionsList에 전달할 props:', { 
+                actionsLength: actions.length, 
+                contactId, 
+                showAIAnalysis: true 
+              })}
+              <ActionsList 
+                actions={actions} 
+                itemsPerPage={5}
+                showAIAnalysis={true}
+                contactId={contactId}
+              />
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

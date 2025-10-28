@@ -28,7 +28,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     const openai = new OpenAI({ apiKey: openaiKey })
 
-    const { contactId, userId } = await req.json()
+    const { contactId, userId, contact: providedContact, recommendedProducts } = await req.json()
     if (!contactId || !userId) {
       return new Response(
         JSON.stringify({ error: 'contactId and userId are required' }),
@@ -39,18 +39,22 @@ serve(async (req) => {
     const traceId = crypto.randomUUID()
     let usedFallback = false
 
-    // 고객 정보 조회
-    const { data: contact, error: contactError } = await supabase
-      .from('contacts')
-      .select('*')
-      .eq('id', contactId)
-      .single()
+    // 고객 정보 조회 (클라이언트에서 제공된 경우 사용, 없으면 DB에서 조회)
+    let contact = providedContact
+    if (!contact) {
+      const { data: dbContact, error: contactError } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('id', contactId)
+        .single()
 
-    if (contactError || !contact) {
-      return new Response(
-        JSON.stringify({ error: 'Contact not found' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 },
-      )
+      if (contactError || !dbContact) {
+        return new Response(
+          JSON.stringify({ error: 'Contact not found' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 },
+        )
+      }
+      contact = dbContact
     }
 
     // 최근 통화 기록 조회
@@ -70,7 +74,7 @@ serve(async (req) => {
       .limit(5)
 
     // AI 프롬프트 구성 (prompts.ts에서 가져옴)
-    const prompt = buildUserPrompt(contact, recentCalls, recentActions)
+    const prompt = buildUserPrompt(contact, recentCalls, recentActions, recommendedProducts)
 
     let items: any[] = []
     try {

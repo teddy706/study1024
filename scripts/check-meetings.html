@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>미팅 데이터 확인</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>미팅 데이터 확인 및 생성</h1>
+    <div id="result"></div>
+    
+    <script>
+        // Supabase 클라이언트 초기화 (실제 값으로 변경해야 함)
+        const supabaseUrl = 'YOUR_SUPABASE_URL'
+        const supabaseKey = 'YOUR_SUPABASE_ANON_KEY'
+        
+        // 실제 환경에서는 아래 값들을 확인하세요
+        console.log('환경 변수 확인:')
+        console.log('VITE_SUPABASE_URL:', import.meta?.env?.VITE_SUPABASE_URL)
+        console.log('VITE_SUPABASE_KEY:', import.meta?.env?.VITE_SUPABASE_KEY)
+        
+        async function checkMeetingData() {
+            try {
+                const resultDiv = document.getElementById('result')
+                resultDiv.innerHTML = '<p>확인 중...</p>'
+                
+                // 개발자 도구에서 실행 중인지 확인
+                if (typeof window.supabase === 'undefined') {
+                    resultDiv.innerHTML = `
+                        <h2>❌ Supabase 클라이언트가 없습니다</h2>
+                        <p>이 스크립트는 애플리케이션이 실행 중인 브라우저에서 실행해야 합니다.</p>
+                        <p>다음 단계를 따라하세요:</p>
+                        <ol>
+                            <li>npm run dev로 애플리케이션을 실행하세요</li>
+                            <li>브라우저에서 http://localhost:5173에 접속하세요</li>
+                            <li>개발자 도구(F12)를 열고 Console 탭으로 이동하세요</li>
+                            <li>아래 스크립트를 복사해서 실행하세요:</li>
+                        </ol>
+                        <pre style="background: #f5f5f5; padding: 10px; margin: 10px 0;">
+// 미팅 데이터 확인
+async function checkMeetings() {
+    if (!window.supabase) {
+        console.error('Supabase 클라이언트를 찾을 수 없습니다.');
+        return;
+    }
+    
+    console.log('🔍 현재 사용자 확인...');
+    const { data: { user }, error: authError } = await window.supabase.auth.getUser();
+    
+    if (authError || !user) {
+        console.error('인증이 필요합니다:', authError);
+        return;
+    }
+    
+    console.log('👤 사용자 ID:', user.id);
+    
+    // 연락처 확인
+    console.log('📋 연락처 확인...');
+    const { data: contacts, error: contactError } = await window.supabase
+        .from('contacts')
+        .select('id, name')
+        .eq('user_id', user.id);
+    
+    if (contactError) {
+        console.error('연락처 조회 실패:', contactError);
+        return;
+    }
+    
+    console.log('📋 연락처 수:', contacts?.length || 0);
+    contacts?.forEach((contact, index) => {
+        console.log(\`  \${index + 1}. \${contact.name} (ID: \${contact.id})\`);
+    });
+    
+    if (contacts && contacts.length > 0) {
+        // 첫 번째 연락처의 미팅 확인
+        const contact = contacts[0];
+        console.log(\`\\n📝 "\${contact.name}"의 미팅 확인...\`);
+        
+        const { data: meetings, error: meetingError } = await window.supabase
+            .from('meetings')
+            .select('*')
+            .eq('contact_id', contact.id)
+            .order('met_at', { ascending: false });
+        
+        if (meetingError) {
+            console.error('미팅 조회 실패:', meetingError);
+            return;
+        }
+        
+        console.log('📝 미팅 수:', meetings?.length || 0);
+        meetings?.forEach((meeting, index) => {
+            console.log(\`  \${index + 1}. \${new Date(meeting.met_at).toLocaleDateString()}: \${meeting.memo?.substring(0, 50)}...\`);
+        });
+        
+        if (!meetings || meetings.length === 0) {
+            console.log('\\n💡 미팅이 없습니다. 테스트 미팅을 생성하려면 다음 스크립트를 실행하세요:');
+            console.log('createSimpleTestMeetings()');
+        }
+    } else {
+        console.log('\\n💡 연락처가 없습니다. 먼저 연락처를 생성해주세요.');
+    }
+}
+
+// 함수 실행
+checkMeetings();
+                        </pre>
+                    `
+                    return
+                }
+                
+                // 실제 확인 로직은 위의 스크립트를 콘솔에서 실행
+                
+            } catch (error) {
+                console.error('오류:', error)
+                document.getElementById('result').innerHTML = `<p>오류: ${error.message}</p>`
+            }
+        }
+        
+        // 페이지 로드 시 실행
+        checkMeetingData()
+    </script>
+</body>
+</html>

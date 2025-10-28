@@ -221,7 +221,8 @@ export const GENERATION_CONFIG = {
 export function buildUserPrompt(
   contact: any,
   recentCalls: any[],
-  recentActions: any[]
+  recentActions: any[],
+  recommendedProducts?: any[]
 ): string {
   const currentDate = new Date().toLocaleDateString('ko-KR', {
     year: 'numeric',
@@ -249,6 +250,12 @@ Last Contact: ${contact.last_contact || 'N/A'}
     ? `\nRecent Actions:\n${recentActions.map(a => `- ${a.action_date}: ${a.description}`).join('\n')}`
     : ''
 
+  const productRecommendations = recommendedProducts && recommendedProducts.length > 0
+    ? `\n\n🛍️ 추천 상품 정보:\n${recommendedProducts.map((p, index) => 
+        `${index + 1}. ${p.name}\n   - 설명: ${p.description || '정보 없음'}\n   - 카테고리: ${p.category}\n   - 가격: ${p.price ? `${p.price.toLocaleString()}${p.currency || 'KRW'}` : '문의'}\n   - 영업 멘트: ${p.sales_pitch || '저희 제품을 소개드리고 싶습니다.'}`
+      ).join('\n\n')}\n\n위 상품들을 자연스럽게 소개할 수 있는 추가 스몰토크 소재도 1-2개 생성해주세요. 상품 관련 소재는 category를 "product"로 설정하고, 강요하지 말고 자연스럽게 소개하세요.`
+    : ''
+
   return USER_PROMPT_TEMPLATE
     .replace('{currentDate}', currentDate)
     .replace('{contactInfo}', contactInfo)
@@ -256,5 +263,5 @@ Last Contact: ${contact.last_contact || 'N/A'}
     .replace('{callHistory}', callHistory)
     .replace('{actionHistory}', actionHistory)
     .replace('{company}', contact.company || '해당 회사')
-    .replace('{position}', contact.position || '담당자')
+    .replace('{position}', contact.position || '담당자') + productRecommendations
 }

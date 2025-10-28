@@ -43,7 +43,7 @@ export const ContactDetail: React.FC = () => {
         .eq('contact_id', contactId)
         .gt('expires_at', nowIso)
         .order('expires_at', { ascending: false })
-        .limit(5)
+        .limit(50)
 
       // 명시적으로 user_id 일치 (RLS와 일관성)
       if (currentUserId) {
@@ -61,7 +61,7 @@ export const ContactDetail: React.FC = () => {
           .select('*')
           .eq('contact_id', contactId)
           .order('created_at', { ascending: false })
-          .limit(3)
+          .limit(20)
         if (currentUserId) {
           fbQuery = fbQuery.eq('user_id', currentUserId)
         }
@@ -431,17 +431,7 @@ export const ContactDetail: React.FC = () => {
             <p className="mb-1">이메일: {contact.email}</p>
             <p className="mb-1">주소: {contact.address}</p>
             
-            {/* 명함 이미지 */}
-            {contact.business_card_image_url && (
-              <div className="mt-4">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">명함 이미지</h3>
-                <img
-                  src={contact.business_card_image_url}
-                  alt="명함"
-                  className="max-w-md rounded-lg border border-gray-200 shadow-sm"
-                />
-              </div>
-            )}
+            {/* 명함 이미지는 웹에서 숨김 처리됨 */}
             
             {/* 관심사 편집 */}
             <div className="mt-4 p-4 bg-gray-50 rounded-lg">

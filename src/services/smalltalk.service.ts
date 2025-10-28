@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabase'
+import { productService } from './product.service'
 
 type GenItem = { topic: string; content: string; expire_days?: number }
 
@@ -16,7 +17,7 @@ export class SmalltalkService {
   }
 
   /**
-   * 고객 정보를 기반으로 AI가 스몰토크 소재를 생성
+   * 고객 정보를 기반으로 AI가 스몰토크 소재를 생성 (상품 추천 포함)
    * @param contactId 고객 ID
    * @returns 생성된 스몰토크 아이템 개수
    */
@@ -30,9 +31,47 @@ export class SmalltalkService {
 
     const userId = authData.user.id
 
-    // Edge Function 호출 시 userId 함께 전달 → 함수가 user_id로 저장
+    // 고객 정보 조회
+    const { data: contact, error: contactError } = await (supabase as any)
+      .from('contacts')
+      .select('*')
+      .eq('id', contactId)
+      .single()
+
+    if (contactError || !contact) {
+      console.error('❌ 고객 정보 조회 실패:', contactError)
+      throw new Error('고객 정보를 찾을 수 없습니다.')
+    }
+
+    // 고객 관심사 기반 상품 추천 조회
+    let recommendedProducts: any[] = []
+    try {
+      recommendedProducts = await productService.getRecommendedProducts(contact.interests || '', 2)
+      console.log('✅ 추천 상품 조회 성공:', recommendedProducts.length, '개')
+    } catch (error) {
+      console.warn('⚠️ 상품 추천 조회 실패, 계속 진행:', error)
+    }
+
+    // Edge Function 호출 시 고객 정보와 추천 상품 함께 전달
     const { data, error } = await supabase.functions.invoke('generate-contact-smalltalk', {
-      body: { contactId, userId },
+      body: { 
+        contactId, 
+        userId,
+        contact: {
+          name: contact.name,
+          company: contact.company,
+          position: contact.position,
+          interests: contact.interests
+        },
+        recommendedProducts: recommendedProducts.map(p => ({
+          name: p.name,
+          description: p.description,
+          category: p.category,
+          sales_pitch: p.sales_pitch,
+          price: p.price,
+          currency: p.currency
+        }))
+      },
     })
     
     if (error) {

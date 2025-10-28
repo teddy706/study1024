@@ -282,6 +282,53 @@ export interface Database {
           created_at?: string
         }
       }
+      products: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          category: string
+          price: number | null
+          currency: string
+          image_url: string | null
+          is_active: boolean
+          target_keywords: string[] | null
+          sales_pitch: string | null
+          created_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          category: string
+          price?: number | null
+          currency?: string
+          image_url?: string | null
+          is_active?: boolean
+          target_keywords?: string[] | null
+          sales_pitch?: string | null
+          created_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          category?: string
+          price?: number | null
+          currency?: string
+          image_url?: string | null
+          is_active?: boolean
+          target_keywords?: string[] | null
+          sales_pitch?: string | null
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

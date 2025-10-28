@@ -1,12 +1,25 @@
-import React from 'react'
+import React, { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import type { Database } from '../../types/supabase'
 
 type Report = Database['public']['Tables']['reports']['Row']
 
-type Props = { reports: Report[] }
+type Props = { 
+  reports: Report[]
+  itemsPerPage?: number
+}
 
-export const ReportsList: React.FC<Props> = ({ reports }) => {
+export const ReportsList: React.FC<Props> = ({ reports, itemsPerPage = 5 }) => {
+  const [currentPage, setCurrentPage] = useState(1)
+
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return reports.slice(startIndex, endIndex)
+  }, [reports, currentPage, itemsPerPage])
+
+  const totalPages = Math.ceil(reports.length / itemsPerPage)
+  const showPagination = reports.length > itemsPerPage
   if (!reports || reports.length === 0) {
     return (
       <div className="text-center py-16">
@@ -22,8 +35,21 @@ export const ReportsList: React.FC<Props> = ({ reports }) => {
   }
 
   return (
-    <div className="divide-y divide-gray-100">
-      {reports.map(r => (
+    <div>
+      {/* 페이지 정보 표시 */}
+      {showPagination && (
+        <div className="px-6 py-3 bg-gray-50 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-600">전체 {reports.length}개</span>
+            <span className="text-sm text-purple-600 bg-purple-50 px-2 py-1 rounded-full">
+              {currentPage} / {totalPages} 페이지
+            </span>
+          </div>
+        </div>
+      )}
+      
+      <div className="divide-y divide-gray-100">
+        {paginatedData.map(r => (
         <Link 
           key={r.id} 
           to={`/reports/${r.id}`} 
@@ -47,7 +73,51 @@ export const ReportsList: React.FC<Props> = ({ reports }) => {
           </div>
           <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed">{r.content}</p>
         </Link>
-      ))}
+        ))}
+      </div>
+      
+      {/* 페이지네이션 컨트롤 */}
+      {showPagination && totalPages > 1 && (
+        <div className="flex items-center justify-center gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+            className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            이전
+          </button>
+          
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+              <button
+                key={pageNum}
+                onClick={() => setCurrentPage(pageNum)}
+                className={`px-3 py-2 text-sm font-medium rounded-lg ${
+                  pageNum === currentPage
+                    ? 'bg-purple-600 text-white'
+                    : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {pageNum}
+              </button>
+            ))}
+          </div>
+          
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+            className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            다음
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   )
 }

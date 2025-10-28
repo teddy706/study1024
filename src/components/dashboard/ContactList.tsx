@@ -7,14 +7,16 @@ type Contact = Database['public']['Tables']['contacts']['Row']
 
 type Props = {
   contacts: Contact[]
+  paginationType?: 'loadMore' | 'pageNumbers'
+  itemsPerPage?: number
 }
 
-export const ContactList: React.FC<Props> = ({ contacts }) => {
+export const ContactList: React.FC<Props> = ({ contacts, paginationType = 'loadMore', itemsPerPage = 12 }) => {
   const [query, setQuery] = useState('')
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([])
   const [sortKey, setSortKey] = useState<'name_asc' | 'name_desc' | 'company_asc' | 'last_desc' | 'last_asc'>('name_asc')
   const [page, setPage] = useState(1)
-  const pageSize = 12
+  const pageSize = itemsPerPage
   const [searchParams, setSearchParams] = useSearchParams()
   const [generatingSmalltalks, setGeneratingSmalltalks] = useState<Set<string>>(new Set())
   const smalltalkService = new SmalltalkService()
@@ -122,9 +124,18 @@ export const ContactList: React.FC<Props> = ({ contacts }) => {
   }, [contacts, query, selectedCompanies, sortKey])
 
   const sliced = useMemo(() => {
-    return filtered.slice(0, page * pageSize)
-  }, [filtered, page])
-  const hasMore = sliced.length < filtered.length
+    if (paginationType === 'loadMore') {
+      return filtered.slice(0, page * pageSize)
+    } else {
+      const startIndex = (page - 1) * pageSize
+      const endIndex = startIndex + pageSize
+      return filtered.slice(startIndex, endIndex)
+    }
+  }, [filtered, page, pageSize, paginationType])
+  
+  const hasMore = paginationType === 'loadMore' && sliced.length < filtered.length
+  const totalPages = Math.ceil(filtered.length / pageSize)
+  const showPageNumbers = paginationType === 'pageNumbers' && totalPages > 1
 
   return (
     <div className="p-6">
@@ -285,6 +296,72 @@ export const ContactList: React.FC<Props> = ({ contacts }) => {
         {hasMore && (
           <div className="mt-6 flex justify-center">
             <button className="btn btn-primary" onClick={() => setPage((p) => p + 1)}>더 보기</button>
+          </div>
+        )}
+        
+        {showPageNumbers && (
+          <div className="mt-6 flex items-center justify-center gap-3 py-4">
+            {/* 페이지 정보 표시 */}
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-sm text-gray-600">전체 {filtered.length}개</span>
+              <span className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                {page} / {totalPages} 페이지
+              </span>
+            </div>
+            
+            {/* 페이지네이션 버튼 */}
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={() => setPage(prev => Math.max(1, prev - 1))}
+                disabled={page === 1}
+                className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                이전
+              </button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  let pageNum
+                  if (totalPages <= 5) {
+                    pageNum = i + 1
+                  } else if (page <= 3) {
+                    pageNum = i + 1
+                  } else if (page >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i
+                  } else {
+                    pageNum = page - 2 + i
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setPage(pageNum)}
+                      className={`px-3 py-2 text-sm font-medium rounded-lg ${
+                        pageNum === page
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  )
+                })}
+              </div>
+              
+              <button
+                onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={page === totalPages}
+                className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                다음
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
           </div>
         )}
         </>
