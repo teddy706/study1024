@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import { supabase } from '../config/supabase'
 import type { Database } from '../types/supabase'
 import { useAuth } from '../hooks/useAuth'
-import LoadingSpinner from '../components/ui/LoadingSpinner'
-import SkeletonLoader from '../components/ui/SkeletonLoader'
 import { OrganizationReportService } from '../services/organizationReport.service'
+import Navbar from '../components/dashboard/Navbar'
+import ContactList from '../components/dashboard/ContactList'
+import ReportsList from '../components/dashboard/ReportsList'
+import ActionsList from '../components/dashboard/ActionsList'
+import ScoreboardNumber from '../components/ui/ScoreboardNumber'
 
 type Contact = Database['public']['Tables']['contacts']['Row']
 type Report = Database['public']['Tables']['reports']['Row']
@@ -15,11 +17,6 @@ type Action = Database['public']['Tables']['actions']['Row']
 type ActionWithContact = Action & {
   contacts?: Pick<Contact, 'id' | 'name' | 'company' | 'position'>
 }
-import Navbar from '../components/dashboard/Navbar'
-import ContactList from '../components/dashboard/ContactList'
-import ReportsList from '../components/dashboard/ReportsList'
-import ActionsList from '../components/dashboard/ActionsList'
-import ScoreboardNumber from '../components/ui/ScoreboardNumber'
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth()
@@ -31,10 +28,6 @@ export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [generatingReport, setGeneratingReport] = useState(false)
   const [activeTab, setActiveTab] = useState<'all' | 'contacts' | 'reports' | 'actions'>('all')
-  
-  // 연락처 필터링 및 정렬 상태
-  const [contactFilter, setContactFilter] = useState<string>('all')
-  const [contactSort, setContactSort] = useState<'name' | 'company' | 'recent'>('name')
 
   useEffect(() => {
     loadDashboardData()
@@ -126,37 +119,7 @@ export const Dashboard: React.FC = () => {
     }
   }
 
-  // 연락처 필터링 및 정렬 함수
-  const getFilteredAndSortedContacts = () => {
-    let filteredContacts = contacts
 
-    // 기업 필터링
-    if (contactFilter !== 'all') {
-      filteredContacts = contacts.filter(contact => contact.company === contactFilter)
-    }
-
-    // 정렬
-    filteredContacts.sort((a, b) => {
-      switch (contactSort) {
-        case 'name':
-          return a.name.localeCompare(b.name)
-        case 'company':
-          return (a.company || '').localeCompare(b.company || '')
-        case 'recent':
-          return new Date(b.last_contact || b.created_at).getTime() - new Date(a.last_contact || a.created_at).getTime()
-        default:
-          return 0
-      }
-    })
-
-    return filteredContacts
-  }
-
-  // 기업 목록 추출
-  const getCompanyList = () => {
-    const companies = contacts.map(contact => contact.company).filter(Boolean)
-    return [...new Set(companies)].sort()
-  }
 
   const handleGenerateReport = async () => {
     try {
@@ -194,14 +157,8 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
       <Navbar />
-      
-      {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDI1NSwgMjU1LCAyNTUsIDAuMDMpIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-30"></div>
-        
-      </div>
 
-      <main className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 relative z-20">
+      <main className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Navigation Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8 sm:mb-12">
           <div 
